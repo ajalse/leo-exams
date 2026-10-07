@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .contenedor-columnas {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            margin: 40px auto;
+            width: 80%;
+        }
+
+        .columna {
+            width: 45%;
+            background: rgba(0, 77, 115, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin: 7px 0;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Configurar estados de exámenes</h1>
+
+<form method="POST">
+
+
+<div class="contenedor-columnas">
+
+    <div class="columna">
+        <h2>TOEFL</h2>
+        <ul>
+        {% for examen in examenes["toefl"] %}
+            <li>
+        
+                <select name="{{ examen }}">
+                    {% for estado in ["habilitado", "realizado", "deshabilitado"] %}
+                        <option value="{{ estado }}" {% if estados[examen] == estado %}selected{% endif %}>
+                            {{ estado }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                {{ examen }}
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="columna">
+        <h2>SAT</h2>
+        <ul>
+        {% for examen in examenes["sat"] %}
+            <li>
+        
+                <select name="{{ examen }}">
+                    {% for estado in ["habilitado", "realizado", "deshabilitado"] %}
+                        <option value="{{ estado }}" {% if estados[examen] == estado %}selected{% endif %}>
+                            {{ estado }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                {{ examen }}
+            </li>
+        {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<button type="submit">Guardar cambios</button>
+
+<a href="/logout">Cerrar sesión</a>
+
+
+</form>
+
+</body>
+</html>
+

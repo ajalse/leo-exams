@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator: Module 1 (Reading & Writing Vol. 17)</title>
+    <style>
+        :root { --primary-blue: #004d73; --bg-cream: #f4efe4; --card-white: #ffffff; --timer-green: #34d399; --tag-blue-bg: #d6e4f0; --passage-line: #00b88a; --border-grey: #cccccc; --text-dark: #1a1a1a; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background-color: var(--bg-cream); }
+        .blue-screen { background-color: var(--primary-blue); color: white; position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; padding: 10%; z-index: 100; overflow: hidden; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.05); white-space: nowrap; z-index: 0; pointer-events: none; }
+        .blue-screen-content { z-index: 1; max-width: 800px; }
+        .title-serif { font-family: Georgia, serif; font-size: 4.5rem; font-weight: bold; margin: 0 0 10px 0; line-height: 1.1; }
+        .subtitle-serif { font-family: Georgia, serif; font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; }
+        .description-text { font-size: 1.3rem; line-height: 1.6; margin-bottom: 40px; max-width: 700px; }
+        .btn-start { background-color: var(--timer-green); color: black; font-size: 1.2rem; font-weight: bold; padding: 15px 35px; border: none; border-radius: 30px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.2s; }
+        .btn-start:hover { transform: scale(1.05); }
+        .evaluation-box { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 30px; margin-bottom: 30px; backdrop-filter: blur(5px); }
+        .evaluation-title { color: var(--timer-green); font-weight: bold; font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
+        .score-grid { display: flex; gap: 20px; margin-top: 25px; }
+        .score-item { background: rgba(0,0,0,0.2); padding: 15px 25px; border-radius: 8px; text-align: center; flex: 1; }
+        .score-num { font-size: 2.5rem; font-weight: bold; font-family: Georgia, serif; display: block; }
+        .btn-repeat { background: transparent; color: white; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+        .btn-repeat:hover { text-decoration: underline; }
+        .app-wrapper { display: flex; flex-direction: column; height: 100vh; display: none; }
+        .top-bar { background-color: var(--primary-blue); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .top-bar-title { font-size: 1.15rem; font-weight: 600; }
+        .timer-container { background-color: var(--timer-green); color: black; padding: 5px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; }
+        .sub-header { background-color: var(--bg-cream); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2ddce; flex-shrink: 0; }
+        .question-number { color: var(--primary-blue); font-family: Georgia, serif; font-size: 1.8rem; font-weight: bold; margin: 0; }
+        .question-tag { background-color: var(--tag-blue-bg); color: var(--primary-blue); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .main-container { flex-grow: 1; display: flex; padding: 25px 30px; gap: 25px; overflow-y: auto; color: var(--text-dark); }
+        .card { background-color: var(--card-white); border: 1px solid #e0e0e0; border-radius: 12px; padding: 30px; width: 50%; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .passage-content { border-left: 5px solid var(--passage-line); padding-left: 20px; margin-bottom: 25px; }
+        .passage-text { font-family: Georgia, serif; font-size: 1.1rem; line-height: 1.8; margin: 0; color: #222; }
+        .question-prompt { font-family: -apple-system, sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin: 0; }
+        .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .option-label { display: flex; align-items: center; padding: 15px 20px; border: 1px solid var(--border-grey); border-radius: 6px; cursor: pointer; transition: border-color 0.2s; font-size: 1.05rem; color: #333; }
+        .option-label:hover { border-color: #888; }
+        .option-label input[type="radio"] { margin: 0 15px 0 0; transform: scale(1.2); cursor: pointer; }
+        .option-correct { border-color: #28a745 !important; background-color: #f6fdf8 !important; }
+        .option-incorrect { border-color: #dc3545 !important; background-color: #fff8f8 !important; }
+        .action-buttons { display: flex; gap: 12px; margin-top: auto; }
+        .pill-btn { background-color: var(--tag-blue-bg); color: var(--primary-blue); border: none; padding: 8px 18px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .pill-btn:hover { opacity: 0.8; }
+        .feedback-box { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-size: 1rem; line-height: 1.5; }
+        .hint-box { background-color: #fff3cd; color: #856404; }
+        .explanation-box { background-color: #d4edda; color: #155724; }
+        .footer { background-color: var(--card-white); border-top: 1px solid #e0e0e0; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .nav-btn { padding: 10px 25px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .btn-prev { background-color: transparent; color: #72a1be; border: 1px solid #72a1be; }
+        .btn-prev:hover { opacity: 0.7; }
+        .btn-prev:disabled { opacity: 0.3; cursor: default; }
+        .btn-next { background-color: var(--primary-blue); color: white; border: none; }
+        .btn-next:hover { opacity: 0.9; }
+        @media (max-width: 900px) { .main-container { flex-direction: column; overflow-y: auto; } .card { width: 100%; height: auto; flex-shrink: 0;} }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="blue-screen">
+        <a id="boton-inicio" href="/">🏠︎</a>
+        <div class="watermark">Advanced SAT Simulator</div>
+        <div class="blue-screen-content">
+            <h1 class="title-serif">SAT Simulator</h1>
+            <h2 class="subtitle-serif">Vol. 17 (Advanced / 27 Qs)</h2>
+            <p class="description-text">Hard Difficulty. Features ALL SAT Question Types (Boundaries, Transitions, Rhetorical Synthesis, Evidence, etc.) across CS, NatSci, Sociology, and History.</p>
+            <button class="btn-start" onclick="startExam()">Comenzar Examen ►</button>
+        </div>
+    </div>
+
+    <div id="app-wrapper" class="app-wrapper">
+        <div class="top-bar">
+            <div class="top-bar-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 17)</div>
+            <div class="timer-container"><span>🕒</span><span id="timer">32:00</span></div>
+        </div>
+        <div class="sub-header">
+            <h2 class="question-number" id="question-number">Question 1</h2>
+            <div class="question-tag" id="question-tag">Tag Here</div>
+        </div>
+        <div class="main-container">
+            <div class="card">
+                <div class="passage-content"><p class="passage-text" id="passage-content"></p></div>
+                <p class="question-prompt" id="question-text"></p>
+            </div>
+            <div class="card">
+                <div class="options" id="options-container"></div>
+                <div class="action-buttons">
+                    <button class="pill-btn" onclick="showHint()">Ver Pista</button>
+                    <button class="pill-btn" onclick="evaluateAnswer()">Evaluar / Ver Explicación</button>
+                </div>
+                <div id="hint-container" class="feedback-box hint-box"></div>
+                <div id="explanation-container" class="feedback-box explanation-box"></div>
+            </div>
+        </div>
+        <div class="footer">
+            <button class="nav-btn btn-prev" id="btn-prev" onclick="prevQuestion()">Anterior</button>
+            <button class="nav-btn btn-next" id="btn-next" onclick="nextQuestion()">Siguiente</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="blue-screen" style="display: none;">
+        <div class="watermark">Module Completed</div>
+        <div class="blue-screen-content">
+            <h2 class="subtitle-serif">🏁 Examen Finalizado</h2>
+            <p class="description-text" style="margin-bottom: 20px;">Has completado las 27 preguntas del simulador Vol. 17.</p>
+            <div class="evaluation-box">
+                <h3 class="evaluation-title">Autoevaluación Avanzada</h3>
+                <div class="score-grid">
+                    <div class="score-item"><span class="score-num" style="color: #34d399;" id="score-correct">0</span>Aciertos</div>
+                    <div class="score-item"><span class="score-num" style="color: #ff6b6b;" id="score-incorrect">0</span>Fallos</div>
+                    <div class="score-item"><span class="score-num" style="color: #cccccc;" id="score-unanswered">0</span>Sin responder</div>
+                </div>
+            </div>
+            <button class="btn-repeat" onclick="location.reload()">↻ Repetir Simulador</button>
+        </div>
+    </div>
+
+    <script>
+        const qData = [
+            // 1-3: Craft & Structure: Words in Context
+            { p: "In modern network architecture, relying on a single centralized server creates a critical vulnerability. If that server fails, the entire network goes offline. To prevent this, software engineers employ distributed systems, ensuring that data processing is ______, thereby eliminating single points of failure.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) decentralized", "B) obfuscated", "C) simulated", "D) encapsulated"], c: 0, tag: "Craft & Structure: Words in Context", h: "Si no depende de un solo servidor central, el procesamiento debe estar distribuido.", e: "A (decentralized). Descentralizar significa distribuir las funciones alejándolas de una autoridad central." },
+            { p: "The discovery of the Rosetta Stone was a watershed moment in Egyptology. Prior to its unearthing in 1799, the meaning of Egyptian hieroglyphs had been entirely lost to history. By presenting the same royal decree in three distinct scripts, the stone finally provided scholars with the ______ needed to unlock an ancient language.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) impediment", "B) Rosetta", "C) cipher", "D) paradox"], c: 2, tag: "Craft & Structure: Words in Context", h: "Proporcionó la clave o código para descifrar el idioma.", e: "C (cipher). En criptografía y lingüística, un 'cipher' o clave de descifrado es la herramienta que permite entender un texto oculto." },
+            { p: "In behavioral economics, the 'endowment effect' describes the tendency of individuals to value an object more highly simply because they own it. Experiments show that participants who are given a coffee mug demand a significantly higher price to sell it than buyers are willing to pay, demonstrating how ownership inherently ______ subjective valuation.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) negates", "B) inflates", "C) stabilizes", "D) replicates"], c: 1, tag: "Craft & Structure: Words in Context", h: "Al poseerlo, le dan un valor más alto de lo normal.", e: "B (inflates). Inflar (inflate) significa aumentar artificialmente, en este caso, la valoración del objeto." },
+            
+            // 4-6: Information & Ideas: Text Purpose / Central Idea
+            { p: "CRISPR-Cas9 is often described simply as 'genetic scissors,' a metaphor that captures its ability to cut DNA at specific locations. However, this analogy fails to convey the system's reliance on guide RNA, which acts as a programmable GPS navigating the vast cellular landscape. Without the guide RNA, the Cas9 enzyme would cut DNA indiscriminately, resulting in cellular death rather than precise modification. Thus, explaining CRISPR solely through the 'scissors' metaphor omits the crucial mechanism of its targeted accuracy.", q: "Which choice best states the main purpose of the text?", o: ["A) To argue that the Cas9 enzyme is too dangerous to be used in human subjects.", "B) To explain how guide RNA is synthesized in a laboratory setting.", "C) To highlight the inadequacy of a common metaphor in capturing the complexity of a genetic tool.", "D) To demonstrate that 'genetic scissors' is a completely false and fabricated concept."], c: 2, tag: "Information & Ideas: Text Purpose", h: "El texto critica la metáfora de las tijeras porque omite la parte de la navegación (el ARN guía).", e: "C. El texto afirma que la analogía de las tijeras falla en transmitir la complejidad del sistema (el uso del ARN guía)." },
+            { p: "Historically, urban planners operated under the assumption that widening roads would alleviate traffic congestion. This approach, however, frequently fell victim to 'induced demand': the phenomenon where an increase in supply (road space) lowers the time-cost of driving, thereby encouraging more people to drive. Within a few years, the expanded highways become just as congested as before. Consequently, modern sociologists advocate for investing in robust public transit systems rather than perpetually expanding asphalt footprints.", q: "Which choice best describes the central idea of the text?", o: ["A) Widening roads is a temporary fix that ultimately fails to solve traffic congestion due to induced demand.", "B) Urban planners are solely responsible for the current ecological crisis in major cities.", "C) Public transit systems are cheaper to build and maintain than complex highway networks.", "D) The time-cost of driving has steadily increased over the past few decades."], c: 0, tag: "Information & Ideas: Central Idea", h: "El texto explica por qué hacer carreteras más grandes no funciona a largo plazo.", e: "A. La idea central es que ensanchar las carreteras falla por la 'demanda inducida', lo que hace que los planificadores busquen otras soluciones." },
+            { p: "In 1965, Gordon Moore predicted that the number of transistors on a microchip would double approximately every two years, drastically reducing the cost of computing. For decades, 'Moore’s Law' held true, driving the digital revolution. Today, however, transistors have reached sizes measured in nanometers. At this atomic scale, quantum tunneling occurs, allowing electrons to jump across logic gates unpredictably. To continue advancing computational power, hardware engineers are now forced to explore entirely new paradigms, such as neuromorphic and quantum computing.", q: "Which choice best states the main purpose of the text?", o: ["A) To explain the specific mechanics of quantum tunneling in modern microprocessors.", "B) To argue that Gordon Moore's original prediction was mathematically flawed.", "C) To describe how a historical trend in computing has reached physical limits, prompting a search for new technologies.", "D) To persuade hardware engineers to abandon traditional silicon chips entirely."], c: 2, tag: "Information & Ideas: Text Purpose", h: "El texto menciona la Ley de Moore, cómo funcionó por décadas, y cómo ahora, al llegar a límites físicos, se buscan nuevas tecnologías.", e: "C. El texto describe la trayectoria de la Ley de Moore hasta su límite físico actual y la consiguiente necesidad de nuevos paradigmas." },
+
+            // 7-8: Information & Ideas: Cross-Text Connections
+            { p: "Text 1: The deployment of autonomous vehicles (AVs) promises to drastically reduce traffic fatalities. Human error—whether due to fatigue, intoxication, or distraction—is responsible for over 90% of vehicular accidents. AVs, equipped with LIDAR and instant reflex algorithms, do not suffer from these biological limitations, ensuring a safer driving environment.\n\nText 2: While the reaction times of autonomous vehicles (AVs) are mathematically superior to humans, AI algorithms struggle with unpredictable 'edge cases'—such as a pedestrian behaving erratically or an ambiguous construction zone. In these highly contextual situations, human drivers excel at intuitive reasoning, whereas an AV might freeze or make a fatal miscalculation.", q: "Based on the texts, how would the author of Text 2 most likely respond to the assertion in Text 1 that AVs ensure a safer driving environment?", o: ["A) By agreeing that human error is the leading cause of accidents, but arguing that AVs are too expensive to implement.", "B) By pointing out that AVs possess their own unique set of cognitive limitations that can also lead to fatal accidents.", "C) By arguing that LIDAR technology is fundamentally flawed and should be replaced by human drivers.", "D) By suggesting that AVs will eventually learn to process unpredictable edge cases better than humans."], c: 1, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 dice que los AVs son más seguros por no ser humanos. El Texto 2 dice que los AVs fallan en situaciones de 'casos extremos'.", e: "B. El autor del Texto 2 señalaría que, aunque los AV no tienen fallos biológicos, tienen limitaciones algorítmicas frente a imprevistos que también son peligrosas." },
+            { p: "Text 1: The Clovis First theory posits that the Clovis people, characterized by their distinctive fluted stone spear points, were the first human inhabitants of the Americas, crossing the Bering land bridge around 13,000 years ago. For decades, the archaeological record consistently supported this timeline, making it the bedrock of New World anthropology.\n\nText 2: Recent excavations at White Sands National Park uncovered fossilized human footprints dating back 23,000 years. These footprints, found in layers of sediment deep beneath the surface, provide undeniable chronological evidence that humans were thriving in North America at least 10,000 years before the Clovis culture emerged.", q: "Based on the texts, what is the relationship between the discovery discussed in Text 2 and the theory described in Text 1?", o: ["A) The discovery confirms the timeline established by the Clovis First theory.", "B) The discovery provides evidence that the Clovis people invented the fluted stone spear point.", "C) The discovery directly contradicts the foundational premise of the Clovis First theory.", "D) The discovery suggests that the Clovis people migrated across the Bering land bridge later than previously thought."], c: 2, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 dice que los Clovis fueron los primeros (hace 13.000 años). El Texto 2 encuentra huellas de hace 23.000 años.", e: "C. Las huellas de hace 23.000 años contradicen directamente la premisa de que los Clovis (13.000 años) fueron los primeros." },
+
+            // 9-11: Information & Ideas: Command of Evidence (Textual / Quantitative)
+            { p: "Many tech companies use 'gamification'—incorporating game-design elements like points, badges, and leaderboards into non-game contexts—to boost user engagement. However, behavioral psychologist Dr. Aris Thorne argues that gamification only provides a short-term novelty effect. Once users realize the rewards hold no intrinsic value, their engagement plummets below baseline levels.", q: "Which finding from a study on a gamified language-learning app would most directly support Dr. Thorne’s argument?", o: ["A) Users spent 40% more time on the app during the first week it introduced leaderboards, and this increased usage held steady for six months.", "B) Users who received digital badges reported feeling a higher sense of accomplishment than those who received physical certificates.", "C) App usage spiked by 50% upon the introduction of points, but within a month, user activity dropped to 10% less than it was before the points were introduced.", "D) Users stated that they preferred learning vocabulary through interactive mini-games rather than reading traditional textbooks."], c: 2, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Busca un dato que muestre un pico inicial seguido de una caída por debajo del nivel original (baseline).", e: "C. Esta opción muestra exactamente el 'short-term novelty effect' seguido de una caída por debajo del nivel base (below baseline levels)." },
+            { p: "In 1915, Alfred Wegener proposed the theory of continental drift, suggesting that continents move across the Earth's surface. He based this on the 'jigsaw fit' of South America and Africa and identical fossil records found on both continents. However, geologists of his era overwhelmingly rejected his theory because Wegener could not explain *how* massive landmasses could move through the solid ocean floor.", q: "Which subsequent scientific discovery provided the specific missing evidence that Wegener’s critics demanded?", o: ["A) The discovery of identical fern fossils in Antarctica and India.", "B) The mapping of mid-ocean ridges and the mechanism of seafloor spreading driven by mantle convection.", "C) The realization that the coastlines of South America and Africa fit together perfectly.", "D) The development of advanced satellite imaging to track atmospheric weather patterns."], c: 1, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Los críticos querían saber el CÓMO (el mecanismo) se movían las masas.", e: "B. La expansión del fondo oceánico mediante la convección del manto proporcionó el mecanismo físico (el 'cómo') que le faltaba a Wegener." },
+            { p: "Economic Study on Minimum Wage Increases\n\n| Year | Min Wage | Unemp. Rate | Cost of Living Index |\n|------|----------|-------------|----------------------|\n| 2019 | $10.00   | 5.1%        | 100                  |\n| 2020 | $11.00   | 5.0%        | 102                  |\n| 2021 | $12.00   | 4.9%        | 104                  |\n| 2022 | $15.00   | 6.5%        | 112                  |\n\nA group of economists argues that moderate, gradual increases to the minimum wage do not negatively impact employment, but aggressive, sudden spikes can cause businesses to lay off workers to cover costs.", q: "Which piece of data from the table most effectively supports the economists' claim?", o: ["A) The unemployment rate decreased steadily from 2019 to 2021 during $1 increases, but spiked to 6.5% after a $3 increase in 2022.", "B) The cost of living index rose every year, reaching a peak of 112 in 2022.", "C) The minimum wage was exactly $10.00 in 2019, which corresponded with an unemployment rate of 5.1%.", "D) The unemployment rate remained perfectly stable between 2020 and 2021 despite a wage increase."], c: 0, tag: "Information & Ideas: Command of Evidence (Quantitative)", h: "Busca datos que muestren que subidas pequeñas no dañan el empleo, pero subidas grandes sí.", e: "A. Los datos muestran que subidas pequeñas (2019-2021) mantuvieron o bajaron el desempleo, pero el salto brusco de $3 en 2022 causó un pico de desempleo." },
+
+            // 12-14: Information & Ideas: Inferences
+            { p: "In public-key cryptography, algorithms like RSA rely on the mathematical difficulty of factoring the product of two extremely large prime numbers. A classical supercomputer might take billions of years to find these prime factors. However, Peter Shor developed an algorithm in 1994 demonstrating that a sufficiently powerful quantum computer could solve this factoring problem in mere hours. Given that global financial systems currently secure their data using RSA encryption...", q: "Which choice most logically completes the text?", o: ["A) the invention of a functional, large-scale quantum computer would render current financial security protocols useless.", "B) mathematicians must abandon prime numbers and use geometry for encryption instead.", "C) classical supercomputers will soon become powerful enough to factor large primes in hours.", "D) Shor's algorithm proved that quantum computers are physically impossible to build."], c: 0, tag: "Information & Ideas: Inferences", h: "Si las finanzas usan RSA, y una computadora cuántica puede romper RSA en horas, ¿qué pasará con las finanzas si se crea esa computadora?", e: "A. Si una computadora cuántica puede ejecutar el algoritmo de Shor, descifraría el RSA fácilmente, haciendo inútiles los sistemas de seguridad actuales." },
+            { p: "During the 17th century, London's rapidly growing population relied heavily on coal for heating and industrial processes. The burning of high-sulfur coal released massive amounts of sulfur dioxide into the air, which combined with the city's natural fog to create a dense, toxic smog. Contemporary medical records show a dramatic spike in respiratory fatalities exclusively during the winter months of this era. It can reasonably be inferred that...", q: "Which choice most logically completes the text?", o: ["A) the population of London began migrating to rural areas to escape the fog.", "B) the lethal smog was primarily driven by the increased combustion of coal needed for winter heating.", "C) the sulfur dioxide actively cured certain types of respiratory illnesses during the summer.", "D) London's natural fog was highly toxic even before the introduction of coal."], c: 1, tag: "Information & Ideas: Inferences", h: "Si las muertes por respiración se disparaban en invierno, y usaban el carbón para calentarse, hay una relación directa.", e: "B. Es lógico inferir que la necesidad de quemar más carbón para calentarse en invierno generaba más esmog tóxico, causando los picos de muertes." },
+            { p: "Behavioral psychologists studying altruism conducted an experiment where toddlers observed an adult struggling to reach a dropped object. In almost all instances, the toddlers spontaneously crawled over, picked up the object, and handed it to the adult, without being asked and without expecting a reward. Because these children were too young to have been formally socialized regarding complex moral duties, the researchers concluded that...", q: "Which choice most logically completes the text?", o: ["A) toddlers require strict parental discipline to learn basic manners.", "B) altruistic behavior is likely an innate, evolutionary trait in humans rather than purely learned.", "C) adults frequently drop objects intentionally to test the intelligence of children.", "D) socialization completely suppresses the natural instincts of human children."], c: 1, tag: "Information & Ideas: Inferences", h: "Si los niños lo hacen espontáneamente sin haber sido enseñados aún, debe ser algo natural.", e: "B. Si actúan así antes de ser 'socializados formalmente', sugiere que el altruismo es una característica humana innata." },
+
+            // 15-18: Standard English Conventions: Boundaries & Form/Structure
+            { p: "Many programmers prefer using Python for data analysis because of its extensive library ecosystem. Libraries such as Pandas and NumPy provide pre-built functions for complex mathematical ______ saving developers countless hours of coding from scratch.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) operations, thereby", "B) operations; thereby", "C) operations. Thereby", "D) operations thereby"], c: 0, tag: "Standard English Conventions: Boundaries", h: "La frase 'saving developers...' es un participio que modifica la oración principal, se une con coma.", e: "A (operations, thereby). El participio 'saving' requiere una coma para unirse correctamente a la cláusula principal independiente." },
+            { p: "In 1911, Marie Curie became the first person to win a second Nobel Prize. Her relentless research into radioactivity fundamentally changed modern physics; ______ prolonged exposure to radioactive isotopes ultimately cost Curie her life.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) however,", "B) however", "C) however;", "D) however:"], c: 0, tag: "Standard English Conventions: Boundaries", h: "Después de un punto y coma, la palabra de transición 'however' requiere una coma inmediatamente después.", e: "A (however,). Al usar punto y coma antes de una conjunción adverbial, se requiere una coma después de la conjunción." },
+            { p: "The migration patterns of the Monarch butterfly, which spans thousands of miles from Canada to central Mexico, ______ one of the most remarkable navigational feats in the insect world.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) constitutes", "B) constitute", "C) is constituting", "D) have constituted"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "El sujeto de la oración es 'The migration patterns' (plural).", e: "B (constitute). El sujeto 'patterns' es plural, por lo tanto el verbo debe estar en plural ('constitute', no 'constitutes')." },
+            { p: "Neither the architect who designed the brutalist concrete structures nor the city planners who approved the zoning permits ______ willing to take responsibility for the neighborhood's subsequent aesthetic decline.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) was", "B) were", "C) is", "D) has been"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "En una estructura 'Neither X nor Y', el verbo concuerda con el sujeto más cercano (Y). Y = 'city planners' (plural).", e: "B (were). La regla de 'neither/nor' dicta que el verbo concuerda con el sujeto más cercano, que es 'city planners' (plural, en pasado por el contexto general)." },
+
+            // 19-21: Expression of Ideas: Transitions
+            { p: "Early theories of economics suggested that humans are perfectly rational actors who always make decisions to maximize their financial utility. ______, the advent of behavioral economics in the late 20th century demonstrated that human financial choices are actually heavily influenced by irrational biases and emotional states.", q: "Which choice completes the text with the most logical transition?", o: ["A) Consequently", "B) Furthermore", "C) Conversely", "D) In other words"], c: 2, tag: "Expression of Ideas: Transitions", h: "La segunda oración contradice directamente la afirmación de la primera oración.", e: "C (Conversely). Expresa un contraste directo entre la teoría antigua (humanos racionales) y la nueva (humanos irracionales)." },
+            { p: "In computer science, monolithic architectures bundle all of an application's functions into a single, unified codebase. This makes initial development relatively straightforward. ______, as the application grows, a monolithic codebase can become incredibly difficult to update, because changing one function risks breaking the entire system.", q: "Which choice completes the text with the most logical transition?", o: ["A) For example", "B) Similarly", "C) On the contrary", "D) Nevertheless"], c: 3, tag: "Expression of Ideas: Transitions", h: "La primera idea es positiva (fácil desarrollo inicial), la segunda es negativa (difícil de actualizar).", e: "D (Nevertheless). Introduce una limitación o contraste a la ventaja previamente mencionada." },
+            { p: "During the Neolithic period, the invention of agriculture allowed humans to settle in permanent villages. Over time, these settlements generated food surpluses, which freed individuals to pursue specialized trades such as pottery and metallurgy. ______, the social hierarchy began to stratify, paving the way for the first complex civilizations.", q: "Which choice completes the text with the most logical transition?", o: ["A) Alternatively", "B) Ultimately", "C) Regardless", "D) In contrast"], c: 1, tag: "Expression of Ideas: Transitions", h: "La estratificación social es el resultado final o la consecuencia de los eventos anteriores.", e: "B (Ultimately). Indica una consecuencia final o el resultado definitivo de un proceso a lo largo del tiempo." },
+
+            // 22-27: Expression of Ideas: Rhetorical Synthesis & Mixed Types
+            { p: "While researching a paper on the Apollo 11 mission, a student took the following notes:\n• The Apollo Guidance Computer (AGC) weighed 70 pounds.\n• It had roughly 64 kilobytes of memory.\n• Today, a standard smartphone has over 4 gigabytes of memory.\n• A smartphone has more than 60,000 times the memory of the AGC.\n• Despite its limitations, the AGC successfully navigated the spacecraft to the Moon and back.", q: "The student wants to emphasize the sheer computing power of modern devices compared to historical technology. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) The Apollo Guidance Computer weighed 70 pounds and successfully navigated to the Moon.", "B) Although the AGC had only 64 kilobytes of memory, it was essential for the Apollo 11 mission.", "C) Highlighting the vast advancements in technology, a standard smartphone possesses over 60,000 times the memory of the Apollo Guidance Computer.", "D) Modern smartphones have over 4 gigabytes of memory, while the Apollo 11 mission occurred decades ago."], c: 2, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es enfatizar el poder de los dispositivos modernos *en comparación* con la tecnología histórica.", e: "C. Esta opción utiliza la estadística comparativa directa (60,000 veces más) para enfatizar el poder moderno frente al histórico." },
+            { p: "While researching a paper on the Code of Justinian, a student took the following notes:\n• It was compiled in the Byzantine Empire around 529 CE.\n• It consolidated centuries of disjointed Roman laws into a single, cohesive legal code.\n• It established the legal principle that a person is innocent until proven guilty.\n• Much of modern Western civil law is directly derived from its framework.", q: "The student wants to explain the lasting historical impact of the Code of Justinian. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) Compiled in 529 CE, the Code of Justinian consolidated centuries of disjointed Roman laws.", "B) The Code of Justinian established the principle of 'innocent until proven guilty,' which helped shape modern Western civil law.", "C) The Byzantine Empire is famous for creating the Code of Justinian around 529 CE.", "D) By organizing old Roman laws, the Code of Justinian made it easier for Byzantine judges to do their jobs."], c: 1, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es explicar el impacto *duradero* en la historia.", e: "B. Menciona un principio específico y conecta su influencia directamente con la ley civil occidental moderna." },
+            { p: "In modern database systems, sharding is the practice of splitting a large database into smaller, more easily managed pieces called data shards. These shards are distributed across multiple servers. Because each server only has to process queries for its specific subset of data, sharding dramatically ______ the system's ability to handle massive spikes in web traffic.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) suppresses", "B) augments", "C) disguises", "D) standardizes"], c: 1, tag: "Craft & Structure: Words in Context", h: "Si cada servidor procesa menos, la capacidad total del sistema para manejar tráfico aumenta.", e: "B (augments). Aumentar o incrementar (augment) la capacidad del sistema." },
+            { p: "In 1996, scientists discovered an ancient meteorite in Antarctica, designated ALH84001, which originated from Mars. Microscopic analysis revealed tiny tube-like structures resembling fossilized bacteria. While some astrobiologists argued this was proof of past Martian life, geologists countered that non-biological processes could easily create identical structures. Today, the debate remains unresolved.", q: "Which choice best describes the central idea of the text?", o: ["A) The ALH84001 meteorite definitively proves that bacteria once lived on Mars.", "B) Geologists and astrobiologists agree that Martian meteorites are too contaminated to study.", "C) Scientists are divided on whether structures in a Martian meteorite represent ancient biological life or non-biological geological formations.", "D) The structures found in ALH84001 are identical to bacteria found in Antarctica."], c: 2, tag: "Information & Ideas: Central Idea", h: "El texto presenta un meteorito y dos puntos de vista opuestos sobre sus estructuras, concluyendo que el debate sigue abierto.", e: "C. Resume perfectamente el conflicto entre las dos interpretaciones científicas sobre el origen de las estructuras." },
+            { p: "Sociological data indicates that the adoption of remote work during the 2020 pandemic had highly unequal economic impacts. While white-collar workers in technology and finance easily transitioned to home offices and saved money on commuting, service-sector workers faced layoffs and increased exposure to health risks. It can reasonably be inferred that the shift to remote work...", q: "Which choice most logically completes the text?", o: ["A) ultimately destroyed the technology and finance sectors.", "B) acted as a catalyst that exacerbated pre-existing class-based economic disparities.", "C) caused white-collar workers to spend significantly more money on transportation.", "D) proved that all jobs can be performed from a home office with adequate software."], c: 1, tag: "Information & Ideas: Inferences", h: "Si los ricos ahorraron dinero y los de clase baja perdieron el trabajo, la desigualdad se hizo más grande.", e: "B. Es lógico inferir que exacerbó (empeoró) las disparidades económicas preexistentes entre clases." },
+            { p: "Dr. Elena Rostova's recent study on coral bleaching ______ that when ocean temperatures rise by just 1 degree Celsius, the symbiotic algae living inside coral tissues are expelled, causing the coral to turn completely white and eventually starve.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) demonstrate", "B) demonstrates", "C) have demonstrated", "D) are demonstrating"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "El sujeto es 'Dr. Elena Rostova's recent study' (singular).", e: "B (demonstrates). El sujeto es singular ('study'), por lo que requiere el verbo en tercera persona singular." }
+        ];
+
+        let currentIndex = 0;
+        let selectedAnswers = new Array(qData.length).fill(null);
+        let timerInterval;
+
+        function startExam() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('app-wrapper').style.display = 'flex';
+            let timeRemaining = 32 * 60;
+            timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) { finishExam(); return; }
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+                const s = (timeRemaining % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = m + ':' + s;
+            }, 1000);
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = qData[currentIndex];
+            document.getElementById('passage-content').innerText = q.p;
+            document.getElementById('question-number').innerText = `Question ${currentIndex + 1}`;
+            document.getElementById('question-tag').innerText = q.tag;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            q.o.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.className = 'option-label';
+                label.id = `opt-label-${idx}`;
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'sat-option';
+                input.value = idx;
+                if (selectedAnswers[currentIndex] === idx) input.checked = true;
+                input.onchange = () => { selectedAnswers[currentIndex] = idx; };
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(opt));
+                optionsContainer.appendChild(label);
+            });
+            
+            document.getElementById('hint-container').style.display = 'none';
+            document.getElementById('explanation-container').style.display = 'none';
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            
+            if (currentIndex === qData.length - 1) {
+                document.getElementById('btn-next').innerText = "Finalizar Examen";
+            } else {
+                document.getElementById('btn-next').innerText = "Siguiente";
+            }
+        }
+
+        function prevQuestion() { if (currentIndex > 0) { currentIndex--; renderQuestion(); } }
+        function nextQuestion() { if (currentIndex < qData.length - 1) { currentIndex++; renderQuestion(); } else { finishExam(); } }
+
+        function showHint() {
+            const hintBox = document.getElementById('hint-container');
+            hintBox.innerHTML = "<strong>Pista:</strong> " + qData[currentIndex].h;
+            hintBox.style.display = 'block';
+        }
+
+        function evaluateAnswer() {
+            const selected = selectedAnswers[currentIndex];
+            if (selected === null) { alert("Por favor, selecciona una respuesta antes de evaluar."); return; }
+            const q = qData[currentIndex];
+            const explanationBox = document.getElementById('explanation-container');
+            explanationBox.innerHTML = "<strong>Explicación:</strong> " + q.e;
+            explanationBox.style.display = 'block';
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`opt-label-${i}`);
+                if (el) el.classList.remove('option-correct', 'option-incorrect');
+            }
+            const correctEl = document.getElementById(`opt-label-${q.c}`);
+            if (correctEl) correctEl.classList.add('option-correct');
+            if (selected !== q.c) {
+                const selectedEl = document.getElementById(`opt-label-${selected}`);
+                if (selectedEl) selectedEl.classList.add('option-incorrect');
+            }
+        }
+
+        function finishExam() {
+            clearInterval(timerInterval);
+            document.getElementById('app-wrapper').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'flex';
+            let correct = 0, incorrect = 0, unanswered = 0;
+            for (let i = 0; i < qData.length; i++) {
+                if (selectedAnswers[i] === null) { unanswered++; }
+                else if (selectedAnswers[i] === qData[i].c) { correct++; }
+                else { incorrect++; }
+            }
+            document.getElementById('score-correct').innerText = correct;
+            document.getElementById('score-incorrect').innerText = incorrect;
+            document.getElementById('score-unanswered').innerText = unanswered;
+        }
+    </script>
+</body>
+</html>

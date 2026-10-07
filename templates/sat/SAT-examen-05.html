@@ -1,0 +1,722 @@
+<!DOCTYPE html><html lang="es"><head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator - 27 Questions (Vol. 10 Advanced)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #121212; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: "DM Sans", sans-serif;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            background-color: #f3f0df; 
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; 
+            flex-direction: column;
+            height: 100%;
+            max-height: 720px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+        }
+        
+        .slide-container.active-slide {
+            display: flex;
+        }
+
+        /* Top Bar for Exam */
+        .top-bar {
+            background-color: #005088; 
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            height: 70px;
+            width: 100%;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .top-bar .module-title { font-size: clamp(16px, 2vw, 20px); font-weight: 700; font-family: "Merriweather", serif; }
+        .top-bar .timer { font-size: clamp(18px, 2vw, 24px); font-weight: 700; background: #11caa0; color: #121212; padding: 5px 15px; border-radius: 20px; }
+
+        h1, h2, h3 { font-family: "Merriweather", serif; color: #005088; }
+        p, li, label { font-family: "DM Sans", sans-serif; font-size: 16px; line-height: 1.5; color: #121212; }
+        
+        .slide-title {
+            font-size: clamp(20px, 3vw, 32px);
+            padding: 15px 40px 10px;
+            border-bottom: 2px solid #cdd6e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .q-domain { font-size: clamp(12px, 1.5vw, 16px); font-family: "DM Sans", sans-serif; background-color: #cdd6e2; padding: 5px 12px; border-radius: 12px; color: #005088; }
+
+        /* Main Content Areas */
+        .content-area {
+            display: flex;
+            flex-grow: 1;
+            padding: 15px 40px;
+            gap: 30px;
+            min-height: 0; 
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .passage-col, .options-col {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cdd6e2;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .passage-text {
+            font-family: "Merriweather", serif;
+            font-size: clamp(14px, 1.8vw, 17px);
+            line-height: 1.7;
+            border-left: 5px solid #11caa0;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-text { font-weight: 700; font-size: clamp(16px, 2vw, 19px); margin-bottom: 20px; }
+
+        /* Options & Interactions */
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 12px;
+            border: 2px solid #cdd6e2;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            font-size: clamp(14px, 1.6vw, 16px);
+        }
+        .radio-option:hover { background-color: #f0f4f8; border-color: #005088; }
+        .radio-option input[type="radio"] { margin-top: 4px; transform: scale(1.2); accent-color: #005088; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-small {
+            background-color: #cdd6e2;
+            color: #005088;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: "DM Sans", sans-serif;
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+        .btn-small:hover { background-color: #11caa0; color: #121212; }
+
+        .hidden-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: clamp(14px, 1.6vw, 16px);
+            display: none; 
+        }
+        .hint-box { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .exp-box { background-color: #e2e3e5; border-left: 4px solid #6c757d; }
+
+        /* Bottom Nav */
+        .nav-bar {
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            border-top: 1px solid #cdd6e2;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        .nav-btn {
+            background-color: #005088;
+            color: #ffffff;
+            border: none;
+            padding: 10px 25px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { background-color: #003d68; }
+        .nav-btn.secondary { background-color: transparent; color: #005088; border: 2px solid #005088; }
+        .nav-btn.secondary:hover { background-color: #f3f0df; }
+        .nav-btn.submit { background-color: #11caa0; color: #121212; }
+
+        .full-bg-image { background-size: cover; background-position: center; }
+        .full-bg-image .overlay {
+            background: linear-gradient(to right, rgba(0, 80, 136, 0.95), rgba(0, 80, 136, 0.7));
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10%;
+            color: white;
+        }
+        .full-bg-image h1 { color: #f3f0df; font-size: clamp(40px, 6vw, 80px); margin-bottom: 20px; }
+        .full-bg-image p { color: #ffffff; font-size: clamp(16px, 2vw, 24px); max-width: 800px; margin-bottom: 40px; }
+
+        /* CSS Charts */
+        .css-bar-chart { display: flex; align-items: flex-end; gap: 30px; height: 200px; padding: 20px 0 0 40px; border-bottom: 2px solid #121212; border-left: 2px solid #121212; margin-top:20px;}
+        .css-bar { width: 40px; background-color: #005088; position: relative; display: flex; justify-content: center; }
+        .css-bar span { position: absolute; bottom: -30px; font-weight: 700; font-size: 14px; }
+        .css-bar .val { position: absolute; top: -25px; font-weight: 700; font-size: 14px; color: #005088;}
+        
+        /* Responsive Adjustments for Mobile/Tablet */
+        @media (max-width: 768px) {
+            .two-column { grid-template-columns: 1fr; }
+            .content-area { padding: 15px; }
+            .passage-col, .options-col { height: auto; min-height: 300px; }
+            .slide-container { border-radius: 0; }
+            .css-bar-chart { height: 150px; gap: 15px;}
+            .css-bar { width: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a id="boton-inicio" href="/">🏠︎</a>
+<script>
+    const questionsData = [
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "When artificial intelligence algorithms are trained on historical loan approval data, they often internalize the demographic prejudices of past human bankers. Rather than creating a neutral evaluation system, the unmonitored AI will actively _______ these systemic biases, denying loans to minority applicants at the same unfair rates as its human predecessors.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) alleviate", "B) entrench", "C) decipher", "D) repudiate"],
+            correct: "B",
+            hint: "El algoritmo adopta los prejuicios del pasado y los sigue aplicando de forma rígida. Busca una palabra que signifique 'arraigar' o 'consolidar firmemente'.",
+            exp: "La respuesta correcta es B (entrench). 'Entrench' significa establecer algo tan firmemente que el cambio resulta muy difícil. El texto describe cómo la IA consolida o arraiga firmemente los sesgos históricos."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "In evolutionary biology, species often retain physical structures that have completely lost their original ancestral function. The human appendix and the pelvic bones of whales are classic examples of _______ organs; they are mere anatomical remnants that offer no survival advantage in the organism's modern environment.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) vestigial", "B) paramount", "C) incipient", "D) ubiquitous"],
+            correct: "A",
+            hint: "Se refiere a órganos que son 'restos anatómicos' de los ancestros evolutivos y que ya no tienen función. Es un término biológico específico.",
+            exp: "La respuesta correcta es A (vestigial). 'Vestigial' describe un órgano o parte del cuerpo que ha quedado como un remanente evolutivo sin función actual (un vestigio)."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "According to the Second Law of Thermodynamics, the total entropy of an isolated system can never decrease over time. This dictates that the universe is locked into an _______ progression toward maximum disorder, meaning that a shattered glass cannot spontaneously reassemble itself into a perfect cup.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) reversible", "B) erratic", "C) inexorable", "D) tangential"],
+            correct: "C",
+            hint: "La progresión hacia el desorden es descrita como algo que 'nunca puede disminuir' y que no puede ir hacia atrás. Busca una palabra que signifique 'imparable' o 'inevitable'.",
+            exp: "La respuesta correcta es C (inexorable). 'Inexorable' describe algo que es imposible de detener o prevenir, lo cual encaja perfectamente con la progresión de la entropía en las leyes de la física."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "The political administration of the Byzantine Empire was notorious for its extreme complexity. The bureaucracy was so _______ that foreign diplomats often spent months simply trying to navigate the countless layers of minor officials needed to secure a single audience with the Emperor.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) transparent", "B) labyrinthine", "C) draconian", "D) ephemeral"],
+            correct: "B",
+            hint: "La burocracia era tan 'extremadamente compleja' que los diplomáticos se perdían en 'incontables capas'. Piensa en la metáfora de un laberinto.",
+            exp: "La respuesta correcta es B (labyrinthine). 'Labyrinthine' significa intrincado y confuso como un laberinto, lo que describe con precisión una burocracia con demasiadas capas y reglas."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "Following the unprecedented harvest, the global agricultural market experienced a sudden _______ of wheat. Because supply so drastically outweighed international demand, the price of grain plummeted, devastating the economies of countries reliant on agricultural exports.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) dearth", "B) monopoly", "C) glut", "D) paradigm"],
+            correct: "C",
+            hint: "Hubo una cosecha sin precedentes, lo que significa que la oferta superó drásticamente la demanda. Busca una palabra que signifique 'exceso' o 'sobreabundancia'.",
+            exp: "La respuesta correcta es C (glut). Un 'glut' en economía es una oferta excesivamente abundante de algo, que es exactamente lo que provocó la caída de los precios en el texto."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In 18th-century philosophy, Jeremy Bentham conceptualized the 'Panopticon', a circular prison where a single hidden guard could potentially observe any inmate at any given time. Because the inmates could never know if they were currently being watched, they were forced to constantly monitor their own behavior. Today, sociologists apply Bentham’s concept to modern digital surveillance. With smartphones and data trackers constantly collecting personal information, citizens unknowingly internalize the Panopticon effect, self-censoring their online activities due to the omnipresent possibility of being monitored.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To argue that modern prisons should be redesigned to reflect 18th-century architectural blueprints.",
+                "B) To explain how a historical architectural concept serves as a metaphor for the psychological effects of modern digital surveillance.",
+                "C) To criticize Jeremy Bentham for designing a prison that violated the basic human rights of its inmates.",
+                "D) To demonstrate that smartphones are less effective at monitoring citizens than human prison guards."
+            ],
+            correct: "B",
+            hint: "El autor explica el diseño del Panóptico y luego dice que 'hoy en día, los sociólogos aplican el concepto de Bentham a la vigilancia digital moderna'.",
+            exp: "La respuesta correcta es B. El propósito principal es presentar la idea original (el Panóptico) y luego establecer un paralelismo directo con cómo los smartphones y el rastreo de datos afectan nuestra psicología hoy."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In classical computer architecture, the 'Von Neumann bottleneck' refers to the limitation in data transfer speed between the Central Processing Unit (CPU) and the computer's memory. Even if a CPU is capable of processing billions of instructions per second, it cannot operate at maximum efficiency if it is constantly waiting for the slower memory hardware to deliver the necessary data. This architectural flaw is the primary reason why modern hardware engineers are investing heavily in expanding local CPU cache sizes rather than simply increasing raw clock speeds.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To explain a fundamental hardware limitation that dictates the current design strategies of computer engineers.",
+                "B) To argue that the CPU is the least important component in determining a computer's overall speed.",
+                "C) To demonstrate the specific programming code needed to bypass the computer's memory.",
+                "D) To criticize John von Neumann for designing computers with deliberately slow memory hardware."
+            ],
+            correct: "A",
+            hint: "El texto define el 'cuello de botella de Von Neumann' (una limitación) y luego explica cómo esa falla impulsa a los ingenieros a invertir en expandir la caché.",
+            exp: "La respuesta correcta es A. El propósito es definir una limitación arquitectónica clave (el cuello de botella) y explicar cómo esto guía el enfoque actual de la ingeniería informática."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> For decades, anthropologists viewed Neanderthals as brutish, unintelligent hominins who survived purely on raw strength. According to this traditional view, the cognitive gap between Neanderthals and *Homo sapiens* was vast, and Neanderthals entirely lacked the capacity for abstract thought, symbolic art, or complex social rituals.\n<br><br><strong>Text 2:</strong> Recent archaeological excavations in European caves have dramatically altered the scientific consensus. Researchers have uncovered ancient flutes crafted from bone, remnants of complex burial sites adorned with flowers, and cave walls marked with intentional, geometric red pigment patterns—all reliably dated to periods when only Neanderthals inhabited the continent.",
+            question: "Based on the texts, how would the researchers in Text 2 most likely view the 'traditional view' described in Text 1?",
+            options: [
+                "A) As an accurate assessment of Neanderthal physical strength, but inaccurate regarding their hunting techniques.",
+                "B) As a completely invalidated hypothesis, directly contradicted by the physical discovery of Neanderthal art and rituals.",
+                "C) As a theory that correctly identifies *Homo sapiens* as the creators of the bone flutes found in European caves.",
+                "D) As a scientifically sound conclusion that explains why Neanderthals ultimately went extinct."
+            ],
+            correct: "B",
+            hint: "El Texto 1 dice que los Neandertales no tenían capacidad para el arte o rituales. El Texto 2 describe descubrimientos de arte y rituales hechos por Neandertales.",
+            exp: "La respuesta correcta es B. Los investigadores del Texto 2 verían la afirmación del Texto 1 como completamente falsa e invalidada (invalidated) por la evidencia física de flautas, arte y ritos funerarios."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> Optimistic economists argue that historical fears of technological unemployment are unfounded. During the Industrial Revolution, machines destroyed thousands of manual weaving jobs, but ultimately created millions of new, better-paying jobs in machine maintenance, logistics, and engineering. They predict the AI revolution will follow this exact same pattern of creative destruction and job replacement.\n<br><br><strong>Text 2:</strong> Labor specialists caution against comparing the AI revolution to the Industrial Revolution. Industrial machines automated physical labor, pushing humans into cognitive labor. Artificial Intelligence, however, automates cognitive labor itself. If AI can process information, write code, and make strategic decisions faster and cheaper than humans, there is no 'higher level' of labor left for displaced workers to move into.",
+            question: "Based on the texts, what would the author of Text 2 most likely point out regarding the historical comparison made in Text 1?",
+            options: [
+                "A) It is fundamentally flawed because AI automates the very cognitive skills that humans previously relied upon to secure new jobs.",
+                "B) It is accurate, but ignores the fact that machine maintenance jobs are currently decreasing.",
+                "C) It correctly predicts that AI will create millions of new manual labor jobs in the agriculture sector.",
+                "D) It underestimates how quickly manual weaving jobs were replaced during the Industrial Revolution."
+            ],
+            correct: "A",
+            hint: "El Texto 1 dice que la IA creará nuevos trabajos igual que las máquinas industriales. El Texto 2 dice que no es comparable porque la IA automatiza el pensamiento (cognitivo), dejando a los humanos sin un 'nivel superior' al que escalar.",
+            exp: "La respuesta correcta es A. El Texto 2 rechaza la comparación histórica argumentando que la automatización cognitiva de la IA elimina el refugio tradicional (el trabajo mental) al que los humanos recurrieron en el pasado."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "Historically, scientists believed that nothing, not even light, could ever escape the gravitational pull of a black hole, rendering them entirely eternal. However, physicist Stephen Hawking revolutionized astrophysics by applying quantum mechanics to the event horizon. He proposed 'Hawking radiation', suggesting that black holes constantly emit a faint stream of thermal radiation. Over immense, almost incomprehensible timescales, this steady loss of mass and energy causes the black hole to slowly shrink and eventually evaporate completely.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Quantum mechanics is entirely incompatible with the existence of black holes.",
+                "B) Black holes are not eternal traps for matter, but rather they slowly emit radiation and will eventually evaporate.",
+                "C) Stephen Hawking proved that light can easily escape from the center of a black hole.",
+                "D) The event horizon of a black hole is composed entirely of thermal radiation."
+            ],
+            correct: "B",
+            hint: "El texto contrapone la vieja idea (los agujeros negros son trampas eternas) con el descubrimiento de Hawking (emiten radiación y se evaporan).",
+            exp: "La respuesta correcta es B. La idea central es explicar la radiación de Hawking y su conclusión principal: que los agujeros negros pierden masa y finalmente se evaporan, contradiciendo la creencia de que son eternos."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "The Haitian Revolution (1791–1804) holds a remarkably unique place in global history. While the American and French Revolutions fought for the political liberties of landowning elites, the Haitian Revolution was ignited by the enslaved population of the French colony of Saint-Domingue. It is the only instance in recorded history where a massive slave uprising successfully culminated in the complete abolition of slavery and the founding of an independent, sovereign republic free from colonial rule.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) The French Revolution was directly responsible for starting the slave uprisings in Saint-Domingue.",
+                "B) The Haitian Revolution was a uniquely significant historical event because it was the sole successful slave rebellion that resulted in an independent nation.",
+                "C) The American Revolution failed to achieve the political liberties that the Haitian Revolution easily secured.",
+                "D) Saint-Domingue was the only French colony that relied heavily on enslaved populations."
+            ],
+            correct: "B",
+            hint: "El texto destaca que la Revolución Haitiana ocupa un 'lugar singular' porque es 'la única instancia en la historia' donde una revuelta de esclavos fundó una república independiente.",
+            exp: "La respuesta correcta es B. El texto se centra en la singularidad histórica absoluta de la Revolución Haitiana: su éxito como rebelión de esclavos que culmina en la creación de un estado soberano."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In cybersecurity, Quantum Key Distribution (QKD) offers a theoretically unhackable method of sharing encryption keys. It relies on the 'observer effect' in quantum mechanics, which states that merely observing a quantum system inevitably alters its state. If two parties use photons to share a cryptographic key, and a malicious hacker attempts to intercept the photons mid-transmission, the hacker's observation will physically change the state of the photons, instantly alerting the original parties that the channel has been compromised.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Photons are too fragile to be used in modern cybersecurity networks.",
+                "B) Hackers frequently use quantum mechanics to alter the state of encrypted data.",
+                "C) QKD provides highly secure data transmission by utilizing a physical law that makes undetected eavesdropping impossible.",
+                "D) The observer effect proves that it is impossible to securely transmit data across a network."
+            ],
+            correct: "C",
+            hint: "El texto explica que QKD es seguro porque la ley física (observer effect) hace que cualquier intento de espionaje se note instantáneamente.",
+            exp: "La respuesta correcta es C. La idea central es cómo QKD usa el efecto observador cuántico para garantizar la seguridad: si alguien espía, altera los fotones y es detectado."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Ornithologists studying urban ecosystems hypothesize that city-dwelling birds are altering their acoustic profiles to cope with the severe noise pollution of modern metropolitan areas. Specifically, they propose that because urban noise—like engine rumble and tire friction—is dominated by low-frequency sounds, birds must shift their songs to a significantly higher pitch in order to be heard by potential mates over the roar of traffic.",
+            question: "Which finding, if true, would most strongly support the ornithologists' hypothesis?",
+            options: [
+                "A) Acoustic analyses demonstrate that the minimum frequency of the mating songs of city sparrows is consistently higher than that of the exact same species living in rural, quiet forests.",
+                "B) Observations show that city birds tend to sing less frequently during the early morning rush hour.",
+                "C) Studies reveal that the low-frequency rumble of urban traffic is loudest during the winter months.",
+                "D) Urban birds are found to build their nests significantly higher in trees than rural birds to avoid ground-level predators."
+            ],
+            correct: "A",
+            hint: "La hipótesis dice que los pájaros en la ciudad cantan en un 'tono significativamente más alto' (higher pitch) para evitar el ruido de baja frecuencia del tráfico. Busca evidencia que confirme esto.",
+            exp: "La respuesta correcta es A. Encontrar que la frecuencia (tono) del canto de los gorriones urbanos es consistentemente más alta que la de los gorriones rurales apoya directamente la hipótesis del cambio acústico."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Human resources researchers recently proposed that implementing a permanent four-day work week (without reducing employee salaries) does not harm corporate revenue. They argue that the extra day of rest drastically reduces employee burnout and sick days, resulting in a more energized, hyper-focused workforce that can accomplish the exact same amount of total work in 32 hours as they previously did in 40.",
+            question: "Which finding, if true, would most strongly support the researchers' argument?",
+            options: [
+                "A) A survey reveals that employees heavily prefer taking Fridays off rather than Mondays.",
+                "B) A global tech company transitioned to a four-day schedule and saw its annual revenue increase slightly, alongside a 40% drop in employee absenteeism.",
+                "C) Several traditional manufacturing plants reported that moving to a 32-hour week forced them to hire additional staff to keep assembly lines running.",
+                "D) Employees on a four-day schedule reported spending their extra day off catching up on personal errands rather than resting."
+            ],
+            correct: "B",
+            hint: "La hipótesis afirma que reducir los días no daña los ingresos y reduce el agotamiento (sick days). Busca la opción donde esto ocurra.",
+            exp: "La respuesta correcta es B. Esta opción proporciona evidencia del mundo real (ingresos mantenidos/aumentados y caída masiva del absentismo) que valida exactamente la hipótesis de los investigadores."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A cybersecurity institute analyzed the primary root causes of major corporate data breaches during the fiscal year 2024.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 200px;'><span class='val'>50%</span><span>Soc.Eng.</span></div><div class='css-bar' style='height: 120px; background-color: #11caa0;'><span class='val' style='color:#11caa0;'>30%</span><span>Soft.Flaw</span></div><div class='css-bar' style='height: 60px; background-color: #cdd6e2;'><span class='val' style='color:#cdd6e2;'>15%</span><span>Insider</span></div><div class='css-bar' style='height: 20px; background-color: #71717a;'><span class='val' style='color:#71717a;'>5%</span><span>Zero-day</span></div></div><br>Based on the chart provided, which statement is most accurate?",
+            question: "Which statement is most accurate based on the chart?",
+            options: [
+                "A) Insider threats and Zero-day exploits combined account for more data breaches than Software Flaws (Soft.Flaw).",
+                "B) Social Engineering (Soc.Eng.) was responsible for exactly half of all major corporate data breaches analyzed.",
+                "C) Software Flaws are the least common cause of corporate data breaches.",
+                "D) Zero-day exploits account for three times as many breaches as Insider threats."
+            ],
+            correct: "B",
+            hint: "Mira la barra de 'Soc.Eng.' y lee su valor. Compara ese valor con las afirmaciones.",
+            exp: "La respuesta correcta es B. El gráfico muestra explícitamente que Social Engineering (Soc.Eng.) representa el 50%, lo que equivale exactamente a la mitad de todas las brechas."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "The Global Energy Council tracked the installed capacity of renewable energy sources (in Gigawatts) worldwide between the years 2020 and 2025.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 240px;'><span class='val'>300 GW</span><span>Solar</span></div><div class='css-bar' style='height: 200px; background-color: #11caa0;'><span class='val' style='color:#11caa0;'>250 GW</span><span>Wind</span></div><div class='css-bar' style='height: 80px; background-color: #cdd6e2;'><span class='val' style='color:#cdd6e2;'>100 GW</span><span>Hydro</span></div></div><br>Based on the chart provided, which statement is most accurate?",
+            question: "Which statement is most accurate based on the chart?",
+            options: [
+                "A) Wind energy capacity is exactly double that of Hydro energy capacity.",
+                "B) Solar energy achieved the highest installed capacity, reaching 300 Gigawatts.",
+                "C) The combined capacity of Wind and Hydro energy is less than the capacity of Solar energy.",
+                "D) Hydro energy capacity decreased significantly between 2020 and 2025."
+            ],
+            correct: "B",
+            hint: "Busca la barra más alta y verifica su valor. Luego compárala con las opciones.",
+            exp: "La respuesta correcta es B. El gráfico indica claramente que la energía Solar tiene la barra más alta y su valor explícito es 300 GW."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "In psychology, the Dunning-Kruger effect describes a cognitive bias in which individuals with low ability, expertise, or experience regarding a specific task tend to vastly overestimate their ability or knowledge. Conversely, true experts often underestimate their relative competence, assuming that tasks that are easy for them must also be easy for everyone else. Therefore, if a software company hires a completely inexperienced amateur programmer alongside a veteran software architect with twenty years of experience, it is highly probable that _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) the amateur will express high confidence in their coding abilities, while the veteran may downplay the complexity of their own skills.",
+                "B) the veteran will immediately fire the amateur due to a lack of confidence.",
+                "C) both individuals will accurately assess their own programming skills without any cognitive bias.",
+                "D) the amateur will realize their lack of knowledge and refuse to write any code."
+            ],
+            correct: "A",
+            hint: "Aplica el efecto Dunning-Kruger: baja habilidad = sobreestima su capacidad; experto = subestima su competencia.",
+            exp: "La respuesta correcta es A. Siguiendo la definición del efecto, el novato (baja habilidad) sobreestimará su capacidad mostrando gran confianza, y el veterano (experto) tenderá a subestimar/minimizar lo especial de sus propias habilidades."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "During the Late Bronze Age collapse (around 1200 BCE), virtually every major civilization in the Eastern Mediterranean experienced rapid, catastrophic decline. Extensive trade networks that spanned from Egypt to the Aegean Sea were completely severed. Because the production of bronze—the fundamental metal used for their tools and weapons—required the fusion of copper and tin, and tin was extremely rare and strictly imported via these collapsed long-distance trade routes, one can reasonably infer that post-collapse societies _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) experienced an immediate surplus of tin as local mines suddenly became highly productive.",
+                "B) transitioned to trading exclusively in precious metals like gold and silver.",
+                "C) were forced to transition away from bronze to alternative materials, like iron, due to the critical inability to acquire tin.",
+                "D) relied on air transport to maintain their supply of copper and tin."
+            ],
+            correct: "C",
+            hint: "Si el bronce necesita estaño, y la ruta comercial para conseguir estaño se colapsa totalmente, las sociedades ya no pueden fabricar bronce.",
+            exp: "La respuesta correcta es C. Si la red comercial necesaria para el escaso estaño se rompe, la producción de bronce se vuelve imposible, forzando lógicamente la transición hacia otras tecnologías disponibles (como el hierro)."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "The ancient Library of Alexandria was renowned throughout the Mediterranean as a universal repository of human thought. Unfortunately, the library was famously destroyed ______ countless scrolls containing invaluable scientific and philosophical knowledge were lost forever.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) destroyed;",
+                "B) destroyed,",
+                "C) destroyed",
+                "D) destroyed:"
+            ],
+            correct: "A",
+            hint: "Tenemos dos cláusulas independientes completas: 'the library was famously destroyed' y 'countless scrolls... were lost forever'. No hay conjunción (and, but), así que necesitamos una puntuación fuerte.",
+            exp: "La respuesta correcta es A (destroyed;). Un punto y coma (semicolon) se usa para conectar dos cláusulas independientes estrechamente relacionadas sin necesidad de una conjunción."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "Alan Turing ______ cracked the complex German Enigma code during World War II, was tragically persecuted by the British government for his sexuality later in life.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) , who",
+                "B) who",
+                "C) who,",
+                "D) , which"
+            ],
+            correct: "A",
+            hint: "La frase 'who cracked the... World War II' es una cláusula relativa no restrictiva (aporta información extra sobre Turing). Debe ir entre comas.",
+            exp: "La respuesta correcta es A (, who). La coma es necesaria para abrir la cláusula no restrictiva que describe a Alan Turing, ya que la cláusula se cierra con otra coma después de 'World War II'."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "To ensure the new application would not crash during peak user hours, the senior engineer focused heavily on optimizing three specific performance metrics ______ database query speed, memory allocation, and CPU usage.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) metrics;",
+                "B) metrics",
+                "C) metrics:",
+                "D) metrics,"
+            ],
+            correct: "C",
+            hint: "La oración va a introducir inmediatamente una lista explícita de cuáles son esas 'tres métricas'.",
+            exp: "La respuesta correcta es C (metrics:). Los dos puntos (colon) se utilizan al final de una cláusula independiente para introducir una lista directa o explicación de lo mencionado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "By the time the Perseverance rover finally transmitted the high-resolution images of the Martian surface back to Earth, the dedicated engineering team at NASA ______ continuously for over forty-eight grueling hours.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) works",
+                "B) will work",
+                "C) are working",
+                "D) had been working"
+            ],
+            correct: "D",
+            hint: "Una acción continua en el pasado ('working for 48 hours') ocurrió ANTES de otro evento específico en el pasado ('transmitted').",
+            exp: "La respuesta correcta es D (had been working). El pasado perfecto continuo (past perfect continuous) es necesario para indicar que una acción estuvo en progreso continuo antes de otro momento en el pasado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "Recent ecological research indicates that the intricate network of subterranean fungal threads, commonly known as a mycelial network, ______ trees in a forest to communicate stress signals and share vital nutrients with one another.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) allow",
+                "B) allows",
+                "C) allowing",
+                "D) to allow"
+            ],
+            correct: "B",
+            hint: "Encuentra el núcleo del sujeto. No es 'threads' (hilos), el sujeto es 'the intricate network'.",
+            exp: "La respuesta correcta es B (allows). El sujeto real es 'network', que es singular. Por lo tanto, el verbo debe estar conjugado en tercera persona del singular (allows)."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "To pass the rigorous technical interview at the top software firm, every aspiring front-end developer must ensure that ______ personal portfolio highlights projects demonstrating proficiency in modern JavaScript frameworks.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) their",
+                "B) its",
+                "C) they're",
+                "D) there"
+            ],
+            correct: "A",
+            hint: "El pronombre posesivo debe referirse a 'every aspiring developer' (una persona). En inglés moderno se usa un pronombre específico para neutralidad de género.",
+            exp: "La respuesta correcta es A (their). En el inglés estándar actual y en el SAT, 'their' se utiliza como pronombre y adjetivo posesivo singular de género neutro."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "Deep-sea submersibles are designed to explore the ocean's abyssal zones, where hydrostatic pressures are high enough to instantly crush standard steel submarines. _______, marine engineers construct the pressure hulls of these specialized vessels using exceptionally thick, high-grade titanium.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Conversely",
+                "B) Furthermore",
+                "C) Consequently",
+                "D) Nevertheless"
+            ],
+            correct: "C",
+            hint: "La presión aplasta el acero (Causa). Los ingenieros deben usar titanio grueso (Efecto).",
+            exp: "La respuesta correcta es C (Consequently). 'Consequently' (Por consiguiente) establece la relación directa de causa y efecto entre el peligro de la presión y la solución de ingeniería."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "Cryptocurrencies are frequently praised by technology enthusiasts for their decentralized nature and their immunity to traditional banking fees and government inflation. _______, their extreme price volatility makes them highly unreliable as a standard medium for daily, real-world financial exchanges.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Moreover",
+                "B) Therefore",
+                "C) For instance",
+                "D) However"
+            ],
+            correct: "D",
+            hint: "La primera frase resalta los puntos positivos (descentralización, sin comisiones). La segunda frase presenta un defecto enorme (volatilidad de precios).",
+            exp: "La respuesta correcta es D (However). 'However' introduce un fuerte contraste, contraponiendo los beneficios teóricos con la desventaja práctica."
+        },
+        {
+            domain: "Expression of Ideas: Rhetorical Synthesis",
+            passage: "While researching the history of the internet, a student took the following notes:<br>• Tim Berners-Lee is a British computer scientist.<br>• He invented the World Wide Web in 1989 while working at CERN.<br>• His initial goal was to help scientists easily share data across different computers.<br>• In 1993, he convinced CERN to release the web's source code into the public domain for free.<br>• This decision allowed anyone to build websites and caused the internet to explode globally.",
+            question: "The student wants to emphasize the immense historical impact of Berners-Lee's decision to make his invention freely available. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+            options: [
+                "A) Tim Berners-Lee, a British computer scientist at CERN, originally invented the World Wide Web in 1989 to help scientists share data.",
+                "B) By convincing CERN to release the World Wide Web's source code for free in 1993, Tim Berners-Lee ensured its rapid global explosion and fundamentally transformed human communication.",
+                "C) Before it exploded globally, the World Wide Web was simply a tool invented by Tim Berners-Lee for sharing scientific data.",
+                "D) In 1993, the source code for the World Wide Web was released into the public domain, four years after it was invented."
+            ],
+            correct: "B",
+            hint: "Busca la opción que mencione su decisión específica (hacerlo gratis en 1993) y destaque el enorme impacto resultante (explosión global/transformación de la comunicación).",
+            exp: "La respuesta correcta es B. Esta opción vincula explícitamente la acción de hacer el código libre y gratuito con el impacto monumental (la explosión global de internet), cumpliendo exactamente con el objetivo del estudiante."
+        }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+
+    function renderSlide(index) {
+        if (index >= questionsData.length) {
+            renderResults();
+            return;
+        }
+
+        const q = questionsData[index];
+        const container = document.getElementById('exam-root');
+        
+        container.innerHTML = `
+            <div class="top-bar">
+                <div class="module-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 10)</div>
+                <div class="timer"><i class="fa-regular fa-clock"></i> <span id="time-display">32:00</span></div>
+            </div>
+            <h2 class="slide-title">Question ${index + 1} <span class="q-domain">${q.domain}</span></h2>
+            
+            <div class="content-area">
+                <div class="two-column">
+                    <div class="passage-col">
+                        <p class="passage-text">${q.passage}</p>
+                        <p class="question-text">${q.question}</p>
+                    </div>
+                    <div class="options-col">
+                        <div class="radio-group" id="options-group">
+                            ${q.options.map((opt, i) => `
+                                <label class="radio-option">
+                                    <input type="radio" name="q${index}" value="${['A','B','C','D'][i]}">
+                                    ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn-small" onclick="document.getElementById('hint-box').style.display = 'block'">Ver Pista</button>
+                            <button class="btn-small" onclick="checkAnswer(${index})">Evaluar / Ver Explicación</button>
+                        </div>
+                        
+                        <div id="hint-box" class="hidden-box hint-box">
+                            <strong><i class="fa-solid fa-lightbulb"></i> Pista:</strong> ${q.hint}
+                        </div>
+                        <div id="exp-box" class="hidden-box exp-box">
+                            <strong>Explicación:</strong> ${q.exp}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-bar">
+                <button class="nav-btn secondary" onclick="prevQ()" ${index === 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>Anterior</button>
+                <button class="nav-btn ${index === questionsData.length - 1 ? 'submit' : ''}" onclick="nextQ()">
+                    ${index === questionsData.length - 1 ? 'Finalizar Examen' : 'Siguiente'}
+                </button>
+            </div>
+        `;
+    }
+
+    function checkAnswer(index) {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const expBox = document.getElementById('exp-box');
+        expBox.style.display = 'block';
+        
+        if (!selected) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation" style="color:#ffc107;"></i> No seleccionaste respuesta.</strong> <br><br> ${questionsData[index].exp}`;
+            return;
+        }
+
+        if (selected.value === questionsData[index].correct) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-check" style="color:#11caa0;"></i> ¡Correcto!</strong> <br><br> ${questionsData[index].exp}`;
+        } else {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Incorrecto.</strong> Elegiste la ${selected.value}. <br><br> ${questionsData[index].exp}`;
+        }
+    }
+
+    function nextQ() {
+        if (currentQ < questionsData.length - 1) {
+            currentQ++;
+            renderSlide(currentQ);
+        } else {
+            renderResults();
+        }
+    }
+
+    function prevQ() {
+        if (currentQ > 0) {
+            currentQ--;
+            renderSlide(currentQ);
+        }
+    }
+
+    function startExam() {
+        document.getElementById('slide-welcome').classList.remove('active-slide');
+        document.getElementById('exam-root').classList.add('active-slide');
+        renderSlide(0);
+        startTimer();
+    }
+
+    function renderResults() {
+        document.getElementById('exam-root').classList.remove('active-slide');
+        document.getElementById('slide-results').classList.add('active-slide');
+        clearInterval(timerInterval);
+    }
+
+    let timerInterval;
+    let timeLeft = 32 * 60; // 32 minutes
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            let display = document.getElementById('time-display');
+            if(display) display.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+            if (timeLeft <= 0) { clearInterval(timerInterval); renderResults(); }
+        }, 1000);
+    }
+
+</script>
+
+<div class="slide-container active-slide full-bg-image" id="slide-welcome" style="background-image: url('https://placehold.co/1280x720/003d68/ffffff?text=Advanced+SAT+Simulator');">
+    <div class="overlay">
+        <h1>SAT Simulator<br>Vol. 10 (Advanced / 27 Qs)</h1>
+        <p>Hard Difficulty & Multidisciplinary. This module contains 27 BRAND NEW, rigorous questions covering Natural Science, History, Social Science, Anthropology, and Complex Computer Science architectures. You have 32 minutes.</p>
+        <div>
+            <button class="nav-btn submit" style="font-size: 24px; padding: 15px 40px;" onclick="startExam()">Comenzar Examen <i class="fa-solid fa-play" style="margin-left:10px;"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Exam Root -->
+<div class="slide-container" id="exam-root">
+    <!-- Populated by JS -->
+</div>
+
+<div class="slide-container full-bg-image" id="slide-results" style="background-image: url('https://placehold.co/1280x720/0f5223/ffffff?text=Module+Completed');">
+    <div class="overlay">
+        <h1 style="font-size: 60px;"><i class="fa-solid fa-flag-checkered"></i> Examen Finalizado</h1>
+        <p style="font-size: 20px;">Has completado las 27 preguntas del simulador Vol. 10 (Nivel Avanzado).</p>
+        <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.3); max-width: 600px;">
+            <h3 style="color:#11caa0; margin-bottom: 10px;">Autoevaluación Avanzada</h3>
+            <p style="font-size: 16px;">¡Impresionante dedicación! Alcanzar el Volumen 10 significa que has expuesto tu mente a una inmensa variedad de estructuras lógicas y vocabulario académico complejo. Continúa usando las explicaciones para refinar tu estrategia y descartar distractores.</p>
+        </div>
+        <div>
+            <button class="nav-btn" onclick="location.reload()"><i class="fa-solid fa-rotate-right" style="margin-right:10px;"></i> Repetir Simulador</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

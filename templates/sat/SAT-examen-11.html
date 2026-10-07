@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator: Module 1 (Reading & Writing Vol. 18)</title>
+    <style>
+        :root { --primary-blue: #004d73; --bg-cream: #f4efe4; --card-white: #ffffff; --timer-green: #34d399; --tag-blue-bg: #d6e4f0; --passage-line: #00b88a; --border-grey: #cccccc; --text-dark: #1a1a1a; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background-color: var(--bg-cream); }
+        .blue-screen { background-color: var(--primary-blue); color: white; position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; padding: 10%; z-index: 100; overflow: hidden; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.05); white-space: nowrap; z-index: 0; pointer-events: none; }
+        .blue-screen-content { z-index: 1; max-width: 800px; }
+        .title-serif { font-family: Georgia, serif; font-size: 4.5rem; font-weight: bold; margin: 0 0 10px 0; line-height: 1.1; }
+        .subtitle-serif { font-family: Georgia, serif; font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; }
+        .description-text { font-size: 1.3rem; line-height: 1.6; margin-bottom: 40px; max-width: 700px; }
+        .btn-start { background-color: var(--timer-green); color: black; font-size: 1.2rem; font-weight: bold; padding: 15px 35px; border: none; border-radius: 30px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.2s; }
+        .btn-start:hover { transform: scale(1.05); }
+        .evaluation-box { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 30px; margin-bottom: 30px; backdrop-filter: blur(5px); }
+        .evaluation-title { color: var(--timer-green); font-weight: bold; font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
+        .score-grid { display: flex; gap: 20px; margin-top: 25px; }
+        .score-item { background: rgba(0,0,0,0.2); padding: 15px 25px; border-radius: 8px; text-align: center; flex: 1; }
+        .score-num { font-size: 2.5rem; font-weight: bold; font-family: Georgia, serif; display: block; }
+        .btn-repeat { background: transparent; color: white; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+        .btn-repeat:hover { text-decoration: underline; }
+        .app-wrapper { display: flex; flex-direction: column; height: 100vh; display: none; }
+        .top-bar { background-color: var(--primary-blue); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .top-bar-title { font-size: 1.15rem; font-weight: 600; }
+        .timer-container { background-color: var(--timer-green); color: black; padding: 5px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; }
+        .sub-header { background-color: var(--bg-cream); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2ddce; flex-shrink: 0; }
+        .question-number { color: var(--primary-blue); font-family: Georgia, serif; font-size: 1.8rem; font-weight: bold; margin: 0; }
+        .question-tag { background-color: var(--tag-blue-bg); color: var(--primary-blue); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .main-container { flex-grow: 1; display: flex; padding: 25px 30px; gap: 25px; overflow-y: auto; color: var(--text-dark); }
+        .card { background-color: var(--card-white); border: 1px solid #e0e0e0; border-radius: 12px; padding: 30px; width: 50%; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .passage-content { border-left: 5px solid var(--passage-line); padding-left: 20px; margin-bottom: 25px; }
+        .passage-text { font-family: Georgia, serif; font-size: 1.1rem; line-height: 1.8; margin: 0; color: #222; }
+        .question-prompt { font-family: -apple-system, sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin: 0; }
+        .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .option-label { display: flex; align-items: center; padding: 15px 20px; border: 1px solid var(--border-grey); border-radius: 6px; cursor: pointer; transition: border-color 0.2s; font-size: 1.05rem; color: #333; }
+        .option-label:hover { border-color: #888; }
+        .option-label input[type="radio"] { margin: 0 15px 0 0; transform: scale(1.2); cursor: pointer; }
+        .option-correct { border-color: #28a745 !important; background-color: #f6fdf8 !important; }
+        .option-incorrect { border-color: #dc3545 !important; background-color: #fff8f8 !important; }
+        .action-buttons { display: flex; gap: 12px; margin-top: auto; }
+        .pill-btn { background-color: var(--tag-blue-bg); color: var(--primary-blue); border: none; padding: 8px 18px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .pill-btn:hover { opacity: 0.8; }
+        .feedback-box { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-size: 1rem; line-height: 1.5; }
+        .hint-box { background-color: #fff3cd; color: #856404; }
+        .explanation-box { background-color: #d4edda; color: #155724; }
+        .footer { background-color: var(--card-white); border-top: 1px solid #e0e0e0; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .nav-btn { padding: 10px 25px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .btn-prev { background-color: transparent; color: #72a1be; border: 1px solid #72a1be; }
+        .btn-prev:hover { opacity: 0.7; }
+        .btn-prev:disabled { opacity: 0.3; cursor: default; }
+        .btn-next { background-color: var(--primary-blue); color: white; border: none; }
+        .btn-next:hover { opacity: 0.9; }
+        @media (max-width: 900px) { .main-container { flex-direction: column; overflow-y: auto; } .card { width: 100%; height: auto; flex-shrink: 0;} }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="blue-screen">
+        <a id="boton-inicio" href="/">🏠︎</a>
+        <div class="watermark">Advanced SAT Simulator</div>
+        <div class="blue-screen-content">
+            <h1 class="title-serif">SAT Simulator</h1>
+            <h2 class="subtitle-serif">Vol. 18 (Advanced / 27 Qs)</h2>
+            <p class="description-text">Hard Difficulty. Features ALL SAT Question Types (Boundaries, Transitions, Rhetorical Synthesis, Evidence, etc.) across CS, NatSci, Sociology, and History.</p>
+            <button class="btn-start" onclick="startExam()">Comenzar Examen ►</button>
+        </div>
+    </div>
+
+    <div id="app-wrapper" class="app-wrapper">
+        <div class="top-bar">
+            <div class="top-bar-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 18)</div>
+            <div class="timer-container"><span>🕒</span><span id="timer">32:00</span></div>
+        </div>
+        <div class="sub-header">
+            <h2 class="question-number" id="question-number">Question 1</h2>
+            <div class="question-tag" id="question-tag">Tag Here</div>
+        </div>
+        <div class="main-container">
+            <div class="card">
+                <div class="passage-content"><p class="passage-text" id="passage-content"></p></div>
+                <p class="question-prompt" id="question-text"></p>
+            </div>
+            <div class="card">
+                <div class="options" id="options-container"></div>
+                <div class="action-buttons">
+                    <button class="pill-btn" onclick="showHint()">Ver Pista</button>
+                    <button class="pill-btn" onclick="evaluateAnswer()">Evaluar / Ver Explicación</button>
+                </div>
+                <div id="hint-container" class="feedback-box hint-box"></div>
+                <div id="explanation-container" class="feedback-box explanation-box"></div>
+            </div>
+        </div>
+        <div class="footer">
+            <button class="nav-btn btn-prev" id="btn-prev" onclick="prevQuestion()">Anterior</button>
+            <button class="nav-btn btn-next" id="btn-next" onclick="nextQuestion()">Siguiente</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="blue-screen" style="display: none;">
+        <div class="watermark">Module Completed</div>
+        <div class="blue-screen-content">
+            <h2 class="subtitle-serif">🏁 Examen Finalizado</h2>
+            <p class="description-text" style="margin-bottom: 20px;">Has completado las 27 preguntas del simulador Vol. 18.</p>
+            <div class="evaluation-box">
+                <h3 class="evaluation-title">Autoevaluación Avanzada</h3>
+                <div class="score-grid">
+                    <div class="score-item"><span class="score-num" style="color: #34d399;" id="score-correct">0</span>Aciertos</div>
+                    <div class="score-item"><span class="score-num" style="color: #ff6b6b;" id="score-incorrect">0</span>Fallos</div>
+                    <div class="score-item"><span class="score-num" style="color: #cccccc;" id="score-unanswered">0</span>Sin responder</div>
+                </div>
+            </div>
+            <button class="btn-repeat" onclick="location.reload()">↻ Repetir Simulador</button>
+        </div>
+    </div>
+
+
+    <script>
+        const qData = [
+            // 1-3: Craft & Structure: Words in Context
+            { p: "To protect sensitive medical data, hospitals utilize encryption algorithms. An encryption algorithm takes readable data (plaintext) and mathematically scrambles it into an unreadable format (ciphertext). Without the correct cryptographic key, decrypting this information is computationally ______ for even the most advanced supercomputers.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) trivial", "B) infeasible", "C) mandatory", "D) lucrative"], c: 1, tag: "Craft & Structure: Words in Context", h: "Si la encriptación funciona, descifrarlo sin la llave debe ser casi imposible.", e: "B (infeasible). Inviable o impracticable; requiere demasiado poder computacional para ser realista." },
+            { p: "In astrobiology, the 'Goldilocks Zone' refers to the habitable region around a star where the temperature is neither too hot nor too cold, allowing liquid water to exist on a planet's surface. However, the presence of liquid water does not ______ guarantee life; it simply provides the basic biochemical solvent necessary for biological processes.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) inherently", "B) nominally", "C) arbitrarily", "D) sporadically"], c: 0, tag: "Craft & Structure: Words in Context", h: "El agua sola no asegura la vida por su propia naturaleza.", e: "A (inherently). Inherentemente; por sí misma no garantiza la vida." },
+            { p: "The Code of Justinian, compiled in the 6th century CE, was an ambitious attempt to organize centuries of convoluted Roman legal decrees into a single, coherent document. By stripping away redundant and contradictory laws, the Emperor essentially ______ the legal framework that would govern the Byzantine Empire for the next millennium.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) dissolved", "B) streamlined", "C) exacerbated", "D) simulated"], c: 1, tag: "Craft & Structure: Words in Context", h: "Al quitar lo redundante y hacerlo coherente, hizo el sistema más eficiente.", e: "B (streamlined). Racionalizar o hacer más eficiente (streamline) eliminando lo innecesario." },
+            
+            // 4-6: Information & Ideas: Text Purpose / Central Idea
+            { p: "In modern software development, 'Containerization' (using tools like Docker) has largely replaced traditional virtual machines (VMs). A virtual machine requires an entire, bulky guest operating system to run a single application, consuming massive amounts of RAM and processing power. A container, on the other hand, packages the application with only its essential dependencies, sharing the host's operating system kernel. This makes containers exceptionally lightweight, allowing developers to spin up hundreds of them in seconds compared to the minutes required for a single VM.", q: "Which choice best states the main purpose of the text?", o: ["A) To argue that virtual machines are entirely obsolete and should be uninstalled from all servers.", "B) To explain how developers write code for Docker containers.", "C) To compare two software deployment methods and highlight the efficiency of the newer approach.", "D) To describe the specific hardware requirements for running an operating system kernel."], c: 2, tag: "Information & Ideas: Text Purpose", h: "El texto compara VMs con Contenedores y dice que los contenedores son más rápidos y ligeros.", e: "C. El propósito es contrastar las máquinas virtuales con la contenerización, resaltando la eficiencia de esta última." },
+            { p: "Behavioral economist Richard Thaler famously coined the term 'choice architecture.' He posited that the way choices are presented directly influences decision-making. For example, placing fruit at eye level in a cafeteria and hiding junk food in opaque containers significantly increases healthy eating, even though the junk food is still available. By subtly altering the environment, architects of choice can 'nudge' people toward beneficial behaviors without restricting their fundamental freedom to choose.", q: "Which choice best describes the central idea of the text?", o: ["A) Cafeterias should ban junk food entirely to promote public health.", "B) The physical presentation of options can subconsciously guide people toward better decisions without limiting their freedom.", "C) People who eat junk food lack the willpower to make rational economic choices.", "D) Choice architecture is a manipulative tactic that strips consumers of their free will."], c: 1, tag: "Information & Ideas: Central Idea", h: "El texto trata sobre cómo organizar las opciones influye en las personas de forma sutil.", e: "B. La idea central es que alterar sutilmente el entorno guía las decisiones sin quitar la libertad de elección." },
+            { p: "The Industrial Revolution in 19th-century Britain spurred unprecedented economic growth, but it also resulted in severe ecological degradation. The 'Peppered Moth' is a classic example of this. Prior to industrialization, light-colored moths were camouflaged against pristine tree bark. As factories blanketed the countryside in black soot, the light moths became highly visible to predators. Conversely, a rare genetic mutation causing dark-colored wings suddenly became highly advantageous, leading the dark moth population to skyrocket in a phenomenon known as industrial melanism.", q: "Which choice best states the main purpose of the text?", o: ["A) To demonstrate how human-induced environmental changes can drive rapid, observable evolutionary adaptation.", "B) To argue that the Industrial Revolution was an ecological disaster with no redeeming economic value.", "C) To explain the chemical composition of the soot produced by 19th-century factories.", "D) To prove that genetic mutations in insects are always beneficial to their survival."], c: 0, tag: "Information & Ideas: Text Purpose", h: "El texto usa la polilla para mostrar cómo la contaminación hizo que la evolución favoreciera un rasgo.", e: "A. El propósito es ilustrar, usando la polilla, cómo el cambio ambiental causado por humanos impulsa la adaptación evolutiva." },
+
+            // 7-8: Information & Ideas: Cross-Text Connections
+            { p: "Text 1: The introduction of fiat currency—money that is not backed by a physical commodity like gold—freed central banks to print money as needed to stimulate economic growth during recessions. Proponents argue this elasticity is essential for modern macroeconomic stability, allowing governments to prevent catastrophic depressions.\n\nText 2: While fiat currency allows for rapid economic stimulation, it completely removes the natural checks on government spending. Because politicians are incentivized to print money to fund popular programs without raising taxes, fiat systems almost inevitably lead to hyperinflation, eroding the purchasing power of the working class.", q: "Based on the texts, how would the author of Text 2 most likely respond to the assertion in Text 1 regarding the 'elasticity' of fiat currency?", o: ["A) By agreeing that elasticity is necessary, but only if the currency is backed by gold.", "B) By arguing that this elasticity is actually a dangerous flaw that encourages reckless spending and inflation.", "C) By praising the elasticity for allowing politicians to lower taxes for the working class.", "D) By denying that central banks actually have the ability to print money during recessions."], c: 1, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 dice que imprimir dinero (elasticidad) salva la economía. El Texto 2 dice que causa inflación y gasto irresponsable.", e: "B. El autor del Texto 2 ve la capacidad de imprimir dinero sin respaldo (elasticidad) como una falla peligrosa que lleva a la inflación." },
+            { p: "Text 1: The construction of the Egyptian pyramids required a massive, highly skilled labor force. Contrary to the popular myth that slaves built the pyramids, archaeological evidence of workers' tombs indicates they were respected citizens. They received steady rations of meat and beer, and those injured on the job were given advanced medical care, including successful amputations.\n\nText 2: Some historians still maintain that the scale of monumental architecture in antiquity fundamentally required coerced labor. They argue that the immense physical toll of dragging multi-ton limestone blocks under the desert sun could not have been sustained by a purely voluntary workforce, regardless of the rations provided.", q: "Based on the texts, what is the relationship between the historians mentioned in Text 2 and the archaeological evidence presented in Text 1?", o: ["A) The historians in Text 2 use the evidence from Text 1 to support their theory of coerced labor.", "B) The historians in Text 2 reject the idea that workers received medical care.", "C) The historians in Text 2 dismiss or downplay the evidence in Text 1, insisting that the physical demands necessitated slavery.", "D) The historians in Text 2 agree with Text 1 that the workers were highly skilled citizens, not slaves."], c: 2, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 dice que hay pruebas de que no eran esclavos. El Texto 2 dice que algunos historiadores aún creen que debieron ser esclavos por la dureza del trabajo.", e: "C. Los historiadores del Texto 2 desestiman las pruebas del Texto 1 (buenas raciones/médico), manteniendo que el trabajo era tan duro que tuvo que ser forzado." },
+
+            // 9-11: Information & Ideas: Command of Evidence (Textual / Quantitative)
+            { p: "In computer programming, a 'race condition' is a bug that occurs when a system attempts to perform two or more operations at the exact same time, but the operations must be done in the proper sequence to work correctly. Software engineer Sarah Lin hypothesized that her team's server crashes were caused by a race condition rather than a memory leak.", q: "Which finding from the server logs would most directly support Lin’s hypothesis?", o: ["A) The server crashed every time the memory usage exceeded 95% of its total capacity.", "B) The crashes only occurred when two different users attempted to update the exact same database entry simultaneously.", "C) The server ran perfectly for 48 hours before shutting down due to an overheating CPU.", "D) The code contained several variables that were declared but never actually used in the program."], c: 1, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Busca evidencia de que dos cosas están ocurriendo 'al mismo tiempo' (simultáneamente).", e: "B. Esta opción describe una situación donde dos operaciones ocurren simultáneamente, que es la definición exacta de un 'race condition'." },
+            { p: "Paleontologists studying the mass extinction event at the end of the Cretaceous period 66 million years ago often point to the Chicxulub asteroid impact. However, some researchers argue that massive volcanic activity in the Deccan Traps (modern-day India) had already fatally weakened global ecosystems by releasing massive amounts of sulfur dioxide, blocking sunlight, and cooling the planet long before the asteroid hit.", q: "Which geological finding would most strongly support the Deccan Traps hypothesis?", o: ["A) A layer of iridium, an element common in asteroids but rare on Earth, found in 66-million-year-old rock layers worldwide.", "B) Fossil evidence showing a sudden, immediate disappearance of non-avian dinosaurs exactly 66 million years ago.", "C) Evidence of a severe, prolonged global drop in temperature and widespread plant die-offs dating to 66.5 million years ago, half a million years before the asteroid impact.", "D) The discovery of a massive impact crater buried beneath the Yucatán Peninsula in Mexico."], c: 2, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Busca evidencia de que el daño ocurrió ANTES (hace más de 66 millones de años) por culpa del enfriamiento.", e: "C. Si hubo muertes masivas y enfriamiento 500.000 años antes del asteroide, apoya la idea de que los volcanes ya estaban matando la vida." },
+            { p: "Survey on Social Media and Anxiety in Teens\n\n| Daily Usage (Hours) | Reported Anxiety Score (1-10) |\n|---------------------|-------------------------------|\n| 0-1                 | 3.2                           |\n| 1-3                 | 4.5                           |\n| 3-5                 | 7.8                           |\n| 5+                  | 8.1                           |\n\nA sociologist claims that there is a 'tipping point' in social media consumption: moderate use causes only minor stress, but exceeding three hours per day causes a severe, disproportionate spike in anxiety.", q: "Which piece of data from the table most effectively supports the sociologist's claim?", o: ["A) The anxiety score rises slightly from 3.2 to 4.5 for users under 3 hours, but jumps massively to 7.8 once usage exceeds 3 hours.", "B) Users who spend 5+ hours have the highest anxiety score of 8.1.", "C) The anxiety score for 0-1 hours is exactly 3.2.", "D) The difference in anxiety between 3-5 hours and 5+ hours is only 0.3 points."], c: 0, tag: "Information & Ideas: Command of Evidence (Quantitative)", h: "Busca el punto de inflexión ('tipping point') donde el salto es más grande justo al pasar de 3 horas.", e: "A. Destaca el pequeño aumento antes de las 3 horas y el 'salto masivo' después de las 3 horas, confirmando el 'tipping point'." },
+
+            // 12-14: Information & Ideas: Inferences
+            { p: "In game theory, the 'Prisoner's Dilemma' illustrates why two completely rational individuals might not cooperate, even if it appears that it is in their best interests to do so. If both players betray each other, they both receive a harsh punishment. If both stay silent, they both get a light punishment. However, if one stays silent while the other betrays, the betrayer goes free while the silent player gets the harshest possible sentence. Because neither player can trust the other to stay silent...", q: "Which choice most logically completes the text?", o: ["A) both players will logically choose to stay silent to ensure the best collective outcome.", "B) the most rational individual choice is to betray the other, resulting in a suboptimal outcome for both.", "C) the police will ultimately have to release both prisoners due to a lack of evidence.", "D) game theory dictates that cooperation is the only mathematically sound strategy."], c: 1, tag: "Information & Ideas: Inferences", h: "Si no pueden confiar el uno en el otro, el miedo a la pena máxima los obliga a traicionarse.", e: "B. Debido a la falta de confianza y el riesgo de la pena máxima, lo 'racional' a nivel individual es traicionar, aunque el resultado colectivo sea peor." },
+            { p: "During the 14th century, the Aztec capital of Tenochtitlan was built on an island in the middle of Lake Texcoco. The city was connected to the mainland by a series of massive causeways, which could be severed by removing portable wooden bridges. While these causeways were essential for daily trade and bringing fresh water into the city via aqueducts, their design strongly suggests that the Aztec leadership...", q: "Which choice most logically completes the text?", o: ["A) prioritized aesthetic beauty over structural engineering.", "B) was completely isolated from mainland tribes and engaged in no trade.", "C) prioritized military defense, allowing them to turn the city into an impregnable island fortress at a moment's notice.", "D) lacked the engineering knowledge to build permanent stone arches."], c: 2, tag: "Information & Ideas: Inferences", h: "Si podían cortar los puentes, la ciudad quedaba rodeada de agua, como un foso gigante.", e: "C. El diseño de puentes removibles indica una fuerte prioridad en la defensa militar contra invasiones terrestres." },
+            { p: "In solid-state physics, materials are classified as conductors, semiconductors, or insulators based on their 'band gap'—the energy difference between the valence band (where electrons are bound to atoms) and the conduction band (where electrons can move freely). Insulators have a massive band gap, requiring immense energy to push electrons across. Semiconductors have a small band gap, meaning that at absolute zero they act as insulators, but at room temperature...", q: "Which choice most logically completes the text?", o: ["A) their band gap expands to match that of a perfect insulator.", "B) ambient thermal energy is sufficient to push some electrons into the conduction band, allowing them to conduct electricity.", "C) the electrons freeze completely, preventing any electrical flow.", "D) they spontaneously transform into metallic conductors like copper."], c: 1, tag: "Information & Ideas: Inferences", h: "Si la brecha es pequeña y el calor aumenta, ¿qué pasará con los electrones?", e: "B. Es lógico inferir que la energía térmica del ambiente (temperatura ambiente) es suficiente para saltar la pequeña brecha, permitiendo la conducción." },
+
+            // 15-18: Standard English Conventions: Boundaries & Form/Structure
+            { p: "Researchers at MIT recently developed a new machine learning algorithm that can predict molecular folding with 98% accuracy. This breakthrough has profound implications for pharmaceutical ______ it could shorten the drug discovery process from years to mere weeks.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) companies, because", "B) companies because", "C) companies; because", "D) companies. Because"], c: 0, tag: "Standard English Conventions: Boundaries", h: "La cláusula subordinada 'because it could...' necesita estar unida a la principal con una coma.", e: "A (companies, because). Se utiliza una coma antes de la conjunción 'because' cuando une una cláusula dependiente a una independiente que expresa causa directa." },
+            { p: "The ruins of Petra, carved directly into the rose-red sandstone cliffs of southern Jordan, ______ the incredible architectural and hydraulic ingenuity of the Nabataean kingdom.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) exemplifies", "B) exemplify", "C) is exemplifying", "D) has exemplified"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "El sujeto es 'The ruins' (plural).", e: "B (exemplify). El sujeto 'The ruins' es plural, por lo que el verbo debe ser 'exemplify'." },
+            { p: "In modern cloud architecture, companies must choose between public, private, or hybrid clouds. A public cloud offers massive scalability and cost savings; a private cloud, ______ offers maximum data security and regulatory compliance.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) on the other hand", "B) on the other hand,", "C) on the other hand;", "D) , on the other hand,"], c: 1, tag: "Standard English Conventions: Boundaries", h: "La frase transicional está en medio de la cláusula. Ya hay una coma antes ('private cloud,'), por lo que necesita una después.", e: "B (on the other hand,). Como 'a private cloud' ya fue seguido por una coma de forma implícita en la estructura (o si consideramos la aposición), 'on the other hand' va entre comas." },
+            { p: "Neither the CEO of the struggling tech startup nor the leading investors ______ willing to compromise on the new equity distribution plan.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) was", "B) were", "C) is", "D) has been"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "Con 'Neither X nor Y', el verbo concuerda con el más cercano (investors, plural).", e: "B (were). Concuerda con 'investors' (plural). Usamos pasado ('were') por el contexto del relato, o 'are' si estuviera en las opciones, pero 'were' es la única plural correcta aquí frente a was/is/has." },
+
+            // 19-21: Expression of Ideas: Transitions
+            { p: "Early psychoanalysts like Sigmund Freud argued that dreams were manifestations of deeply repressed unconscious desires. ______, modern neuroscientists generally view dreams as the brain's biological mechanism for consolidating daily memories and discarding useless neural connections.", q: "Which choice completes the text with the most logical transition?", o: ["A) In addition", "B) By contrast", "C) For example", "D) As a result"], c: 1, tag: "Expression of Ideas: Transitions", h: "La teoría de Freud (deseos ocultos) se opone a la teoría moderna (limpieza biológica).", e: "B (By contrast). Indica una fuerte oposición entre las visiones de Freud y los neurocientíficos modernos." },
+            { p: "The implementation of the assembly line by Henry Ford drastically reduced the time required to build an automobile, lowering the cost of the Model T so that average workers could afford it. ______, it revolutionized the manufacturing industry, leading to mass production techniques in nearly every sector of the global economy.", q: "Which choice completes the text with the most logical transition?", o: ["A) Paradoxically", "B) Previously", "C) Ultimately", "D) Instead"], c: 2, tag: "Expression of Ideas: Transitions", h: "La segunda oración describe la consecuencia final y a gran escala de la primera.", e: "C (Ultimately). Significa 'finalmente' o 'en última instancia', mostrando el resultado histórico final de la invención." },
+            { p: "Blockchain technology provides a decentralized, immutable ledger that makes financial fraud extremely difficult. ______, many major banking institutions remain hesitant to adopt it, citing concerns over regulatory uncertainty and the massive energy consumption of proof-of-work algorithms.", q: "Which choice completes the text with the most logical transition?", o: ["A) Nevertheless", "B) Furthermore", "C) Accordingly", "D) In fact"], c: 0, tag: "Expression of Ideas: Transitions", h: "La primera oración dice algo bueno (evita fraude). La segunda dice algo malo (los bancos no lo quieren).", e: "A (Nevertheless). 'Sin embargo' introduce un contraste: a pesar de los beneficios, los bancos dudan." },
+
+            // 22-27: Expression of Ideas: Rhetorical Synthesis & Mixed Types
+            { p: "While researching a paper on the Great Emu War, a student took the following notes:\n• In 1932, Australia faced an overpopulation of emus destroying wheat crops.\n• The military deployed soldiers armed with Lewis machine guns to cull the birds.\n• Emus proved incredibly fast and highly resilient to machine-gun fire.\n• After several weeks, the soldiers withdrew, having killed very few emus.\n• The event is frequently cited as a humorous historical failure of military intervention against nature.", q: "The student wants to summarize the outcome of the Great Emu War for an audience unfamiliar with the event. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) In 1932, the Australian military deployed soldiers with Lewis machine guns to cull emus that were eating wheat crops.", "B) The Great Emu War of 1932 ended in a humorous military failure when Australian soldiers, unable to shoot the fast and resilient birds, withdrew without solving the crop destruction.", "C) Emus are fast birds that are highly resilient to machine-gun fire, causing the military to withdraw after several weeks.", "D) Often cited as a humorous failure, the event involved soldiers armed with machine guns fighting against birds in Australia."], c: 1, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es resumir el 'resultado' (outcome) para una audiencia nueva.", e: "B. Resume efectivamente quién peleó, por qué fracasaron (aves rápidas) y el resultado final (se retiraron sin éxito)." },
+            { p: "While researching a paper on Grace Hopper, a student took the following notes:\n• Grace Hopper was a pioneer of computer programming in the 1950s.\n• She invented the first compiler, a program that translates human-readable code into machine language.\n• Before compilers, programmers had to write code in complex binary (1s and 0s).\n• Her work directly led to the development of COBOL, one of the first high-level programming languages.\n• She believed programming should be as easy as reading English.", q: "The student wants to emphasize how Grace Hopper made programming more accessible to humans. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) Grace Hopper was a pioneer in the 1950s who eventually helped develop the COBOL programming language.", "B) By inventing the first compiler, Grace Hopper eliminated the need to code in complex binary, fulfilling her belief that programming should be readable like English.", "C) Before Grace Hopper invented the compiler, early computer programmers were forced to write software using only 1s and 0s.", "D) Grace Hopper, a 1950s computer pioneer, believed that writing code was too difficult for the average person."], c: 1, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es destacar cómo hizo la programación MÁS ACCESIBLE.", e: "B. Destaca explícitamente cómo su invento eliminó el código binario difícil, cumpliendo su objetivo de hacerlo tan fácil como leer inglés." },
+            { p: "In modern database systems, a 'primary key' is a unique identifier for every record in a table. Without a primary key, a database cannot reliably distinguish between two users with the exact same name and birthdate. Therefore, assigning a primary key is absolutely ______ for maintaining data integrity.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) superficial", "B) critical", "C) arbitrary", "D) hypothetical"], c: 1, tag: "Craft & Structure: Words in Context", h: "Si sin ella la base de datos no funciona bien, entonces es muy importante.", e: "B (critical). Crítico o vital para el funcionamiento del sistema." },
+            { p: "During the Cold War, the 'Space Race' was ostensibly about scientific exploration, but historians argue its true core was ideological warfare. The Soviet launch of Sputnik in 1957 panicked the United States, driving the creation of NASA. The subsequent Apollo 11 moon landing in 1969 was hailed as a victory for capitalism over communism. Ultimately, space was merely a proxy battlefield to demonstrate technological and political superiority.", q: "Which choice best describes the central idea of the text?", o: ["A) NASA was created solely to explore the scientific properties of the moon.", "B) The Soviet Union was technologically superior to the United States throughout the Cold War.", "C) The Space Race was fundamentally a political and ideological competition rather than a purely scientific endeavor.", "D) Sputnik was a dangerous military weapon that panicked the American public."], c: 2, tag: "Information & Ideas: Central Idea", h: "El texto dice que el espacio era un campo de batalla para probar quién era superior políticamente.", e: "C. La idea central es que la carrera espacial fue impulsada por la guerra ideológica y política, no solo por la ciencia." },
+            { p: "A recent study in neurobiology tracked the brain activity of cab drivers in London. To get their licenses, these drivers must memorize 'The Knowledge,' a labyrinth of 25,000 streets. MRI scans revealed that the hippocampus—the brain region associated with spatial memory—was significantly larger in veteran cab drivers than in novice drivers. It can reasonably be inferred that...", q: "Which choice most logically completes the text?", o: ["A) people are born with abnormally large hippocampuses if they are destined to become cab drivers.", "B) the human brain structurally adapts and grows in specific areas in response to intense, prolonged cognitive demands.", "C) driving a car physically damages other parts of the brain, causing the hippocampus to swell.", "D) memorizing streets is the only way to increase the size of the hippocampus."], c: 1, tag: "Information & Ideas: Inferences", h: "Si a los veteranos les crece esa parte del cerebro por estudiar calles, significa que el cerebro cambia físicamente al usarlo mucho.", e: "B. Es lógico inferir que el cerebro se adapta estructuralmente (neuroplasticidad) ante demandas cognitivas intensas." },
+            { p: "The discovery of the Dead Sea Scrolls in the 1940s provided scholars with fragments of the Hebrew Bible that were over a thousand years older than any previously known manuscript. Astonishingly, the text of these ancient scrolls ______ almost perfectly with the modern versions used today, proving the incredible accuracy of ancient scribal copying traditions.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) align", "B) aligns", "C) has aligned", "D) are aligning"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "El sujeto es 'the text' (singular).", e: "B (aligns). El sujeto es singular ('text'), por lo que el verbo debe ser 'aligns'." }
+        ];
+
+        let currentIndex = 0;
+        let selectedAnswers = new Array(qData.length).fill(null);
+        let timerInterval;
+
+        function startExam() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('app-wrapper').style.display = 'flex';
+            let timeRemaining = 32 * 60;
+            timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) { finishExam(); return; }
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+                const s = (timeRemaining % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = m + ':' + s;
+            }, 1000);
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = qData[currentIndex];
+            document.getElementById('passage-content').innerText = q.p;
+            document.getElementById('question-number').innerText = `Question ${currentIndex + 1}`;
+            document.getElementById('question-tag').innerText = q.tag;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            q.o.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.className = 'option-label';
+                label.id = `opt-label-${idx}`;
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'sat-option';
+                input.value = idx;
+                if (selectedAnswers[currentIndex] === idx) input.checked = true;
+                input.onchange = () => { selectedAnswers[currentIndex] = idx; };
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(opt));
+                optionsContainer.appendChild(label);
+            });
+            
+            document.getElementById('hint-container').style.display = 'none';
+            document.getElementById('explanation-container').style.display = 'none';
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            
+            if (currentIndex === qData.length - 1) {
+                document.getElementById('btn-next').innerText = "Finalizar Examen";
+            } else {
+                document.getElementById('btn-next').innerText = "Siguiente";
+            }
+        }
+
+        function prevQuestion() { if (currentIndex > 0) { currentIndex--; renderQuestion(); } }
+        function nextQuestion() { if (currentIndex < qData.length - 1) { currentIndex++; renderQuestion(); } else { finishExam(); } }
+
+        function showHint() {
+            const hintBox = document.getElementById('hint-container');
+            hintBox.innerHTML = "<strong>Pista:</strong> " + qData[currentIndex].h;
+            hintBox.style.display = 'block';
+        }
+
+        function evaluateAnswer() {
+            const selected = selectedAnswers[currentIndex];
+            if (selected === null) { alert("Por favor, selecciona una respuesta antes de evaluar."); return; }
+            const q = qData[currentIndex];
+            const explanationBox = document.getElementById('explanation-container');
+            explanationBox.innerHTML = "<strong>Explicación:</strong> " + q.e;
+            explanationBox.style.display = 'block';
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`opt-label-${i}`);
+                if (el) el.classList.remove('option-correct', 'option-incorrect');
+            }
+            const correctEl = document.getElementById(`opt-label-${q.c}`);
+            if (correctEl) correctEl.classList.add('option-correct');
+            if (selected !== q.c) {
+                const selectedEl = document.getElementById(`opt-label-${selected}`);
+                if (selectedEl) selectedEl.classList.add('option-incorrect');
+            }
+        }
+
+        function finishExam() {
+            clearInterval(timerInterval);
+            document.getElementById('app-wrapper').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'flex';
+            let correct = 0, incorrect = 0, unanswered = 0;
+            for (let i = 0; i < qData.length; i++) {
+                if (selectedAnswers[i] === null) { unanswered++; }
+                else if (selectedAnswers[i] === qData[i].c) { correct++; }
+                else { incorrect++; }
+            }
+            document.getElementById('score-correct').innerText = correct;
+            document.getElementById('score-incorrect').innerText = incorrect;
+            document.getElementById('score-unanswered').innerText = unanswered;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,722 @@
+<!DOCTYPE html><html lang="es"><head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator - 27 Questions (Vol. 14 Advanced)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #121212; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: "DM Sans", sans-serif;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            background-color: #f3f0df; 
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; 
+            flex-direction: column;
+            height: 100%;
+            max-height: 720px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+        }
+        
+        .slide-container.active-slide {
+            display: flex;
+        }
+
+        .top-bar {
+            background-color: #005088; 
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            height: 70px;
+            width: 100%;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .top-bar .module-title { font-size: clamp(16px, 2vw, 20px); font-weight: 700; font-family: "Merriweather", serif; }
+        .top-bar .timer { font-size: clamp(18px, 2vw, 24px); font-weight: 700; background: #11caa0; color: #121212; padding: 5px 15px; border-radius: 20px; }
+
+        h1, h2, h3 { font-family: "Merriweather", serif; color: #005088; }
+        p, li, label { font-family: "DM Sans", sans-serif; font-size: 16px; line-height: 1.5; color: #121212; }
+        
+        .slide-title {
+            font-size: clamp(20px, 3vw, 32px);
+            padding: 15px 40px 10px;
+            border-bottom: 2px solid #cdd6e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .q-domain { font-size: clamp(12px, 1.5vw, 16px); font-family: "DM Sans", sans-serif; background-color: #cdd6e2; padding: 5px 12px; border-radius: 12px; color: #005088; }
+
+        .content-area {
+            display: flex;
+            flex-grow: 1;
+            padding: 15px 40px;
+            gap: 30px;
+            min-height: 0; 
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .passage-col, .options-col {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cdd6e2;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .passage-text {
+            font-family: "Merriweather", serif;
+            font-size: clamp(14px, 1.8vw, 17px);
+            line-height: 1.7;
+            border-left: 5px solid #11caa0;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-text { font-weight: 700; font-size: clamp(16px, 2vw, 19px); margin-bottom: 20px; }
+
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 12px;
+            border: 2px solid #cdd6e2;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            font-size: clamp(14px, 1.6vw, 16px);
+        }
+        .radio-option:hover { background-color: #f0f4f8; border-color: #005088; }
+        .radio-option input[type="radio"] { margin-top: 4px; transform: scale(1.2); accent-color: #005088; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-small {
+            background-color: #cdd6e2;
+            color: #005088;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: "DM Sans", sans-serif;
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+        .btn-small:hover { background-color: #11caa0; color: #121212; }
+
+        .hidden-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: clamp(14px, 1.6vw, 16px);
+            display: none; 
+        }
+        .hint-box { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .exp-box { background-color: #e2e3e5; border-left: 4px solid #6c757d; }
+
+        .nav-bar {
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            border-top: 1px solid #cdd6e2;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        .nav-btn {
+            background-color: #005088;
+            color: #ffffff;
+            border: none;
+            padding: 10px 25px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { background-color: #003d68; }
+        .nav-btn.secondary { background-color: transparent; color: #005088; border: 2px solid #005088; }
+        .nav-btn.secondary:hover { background-color: #f3f0df; }
+        .nav-btn.submit { background-color: #11caa0; color: #121212; }
+
+        .full-bg-image { background-size: cover; background-position: center; }
+        .full-bg-image .overlay {
+            background: linear-gradient(to right, rgba(0, 80, 136, 0.95), rgba(0, 80, 136, 0.7));
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10%;
+            color: white;
+        }
+        .full-bg-image h1 { color: #f3f0df; font-size: clamp(40px, 6vw, 80px); margin-bottom: 20px; }
+        .full-bg-image p { color: #ffffff; font-size: clamp(16px, 2vw, 24px); max-width: 800px; margin-bottom: 40px; }
+
+        .css-bar-chart { display: flex; align-items: flex-end; gap: 30px; height: 200px; padding: 20px 0 0 40px; border-bottom: 2px solid #121212; border-left: 2px solid #121212; margin-top:20px;}
+        .css-bar { width: 40px; background-color: #005088; position: relative; display: flex; justify-content: center; }
+        .css-bar span { position: absolute; bottom: -30px; font-weight: 700; font-size: 14px; }
+        .css-bar .val { position: absolute; top: -25px; font-weight: 700; font-size: 14px; color: #005088;}
+        
+        @media (max-width: 768px) {
+            .two-column { grid-template-columns: 1fr; }
+            .content-area { padding: 15px; }
+            .passage-col, .options-col { height: auto; min-height: 300px; }
+            .slide-container { border-radius: 0; }
+            .css-bar-chart { height: 150px; gap: 15px;}
+            .css-bar { width: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a id="boton-inicio" href="/">🏠︎</a>
+<script>
+    const questionsData = [
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "When building complex machine learning architectures, engineers must be careful not to introduce 'perverse incentives' into the reward function. If the AI is rewarded simply for completing a task quickly, it might discover a highly efficient but catastrophic shortcut, resulting in behavior that is entirely _______ to the engineers' original, safe intentions.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) commensurate", "B) antithetical", "C) derivative", "D) subordinate"],
+            correct: "B",
+            hint: "La IA encuentra un atajo que causa algo 'catastrófico' en lugar de lo que los ingenieros querían (seguridad). Busca una palabra que signifique 'directamente opuesto'.",
+            exp: "La respuesta correcta es B (antithetical). 'Antithetical' significa directamente opuesto o incompatible, lo cual describe perfectamente el comportamiento de una IA que hace exactamente lo contrario de lo que los creadores pretendían de forma segura."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "In paleoclimatology, analyzing the chemical composition of ancient ice cores allows scientists to reconstruct historical atmospheric conditions. However, the data extracted from the deepest, oldest layers of ice is often _______; the extreme pressure causes the delicate gas bubbles to slowly diffuse and merge over millennia, blurring the precise chronological record.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) unequivocal", "B) meticulous", "C) ambiguous", "D) sacrosanct"],
+            correct: "C",
+            hint: "El texto dice que las burbujas se mezclan y 'difuminan el registro cronológico preciso' (blurring the precise record). Por lo tanto, los datos no son claros.",
+            exp: "La respuesta correcta es C (ambiguous). Si el registro se ha difuminado y mezclado, los datos resultantes son 'ambiguous' (ambiguos, poco claros o abiertos a más de una interpretación)."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "The success of early agrarian societies heavily depended on their ability to manage localized water sources. Communities that successfully engineered complex irrigation canals often flourished, while those relying strictly on unpredictable seasonal rainfall remained highly _______ to catastrophic crop failures.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) apathetic", "B) invulnerable", "C) susceptible", "D) indifferent"],
+            correct: "C",
+            hint: "Si una comunidad depende de lluvias 'impredecibles', estará expuesta o propensa a sufrir cuando la lluvia falle.",
+            exp: "La respuesta correcta es C (susceptible). 'Susceptible' significa propenso o vulnerable a ser afectado negativamente por algo (como las fallas de las cosechas)."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "Many theoretical physicists find the 'Many-Worlds Interpretation' of quantum mechanics philosophically troubling. The theory posits that every possible outcome of a quantum event actually occurs, each branching off into a distinct, parallel universe. Critics argue this interpretation is excessively _______, violating the principle of Occam's razor by unnecessarily multiplying entities beyond what is strictly required to explain observation.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) parsimonious", "B) profligate", "C) esoteric", "D) vindicated"],
+            correct: "B",
+            hint: "La Navaja de Ockham dice que las explicaciones simples son mejores. La teoría crea infinitos universos, 'multiplicando entidades innecesariamente'. Busca una palabra que signifique 'derrochador' o 'excesivo'.",
+            exp: "La respuesta correcta es B (profligate). En un contexto académico, 'profligate' puede significar imprudentemente extravagante o derrochador (en este caso, derrochando la creación de universos paralelos)."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "In cybersecurity, steganography involves hiding a secret message or malicious payload inside an otherwise ordinary, non-secret file, such as a digital image. This technique is particularly insidious because the carrier file remains fully functional and appears completely _______ to standard antivirus scans, allowing the hidden threat to bypass basic perimeter defenses.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) innocuous", "B) malignant", "C) conspicuous", "D) convoluted"],
+            correct: "A",
+            hint: "El archivo portador parece 'ordinario' y elude las defensas porque no se ve peligroso. Busca una palabra que signifique 'inofensivo'.",
+            exp: "La respuesta correcta es A (innocuous). 'Innocuous' significa inofensivo o que no parece causar daño, lo cual explica por qué los escaneos antivirus básicos no lo detectan."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In modern cloud computing, 'Serverless Architecture' is a misnomer. Servers still physically exist and execute the code. The term simply means that the software developer no longer has to provision, scale, or maintain the underlying hardware infrastructure. Instead, the cloud provider dynamically allocates machine resources strictly on an as-needed basis, charging the customer only for the exact milliseconds their specific functions are running, rather than charging for a server that remains idle all day.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To argue that serverless architecture is ultimately more expensive than maintaining traditional hardware.",
+                "B) To clarify a potentially confusing technical term by explaining how the underlying billing and infrastructure model actually works.",
+                "C) To criticize software developers for failing to properly maintain the servers they write code for.",
+                "D) To prove that cloud providers physically hide their servers from their customers."
+            ],
+            correct: "B",
+            hint: "El texto empieza diciendo que el nombre es un 'misnomer' (un nombre inapropiado) y luego procede a explicar lo que *realmente* significa el concepto.",
+            exp: "La respuesta correcta es B. El propósito principal es aclarar un término técnico confuso ('Serverless') explicando que los servidores sí existen, pero la responsabilidad de la infraestructura y el modelo de facturación cambian a manos del proveedor."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "The 'Cobra Effect' occurs when an attempted solution to a problem actually makes the problem worse due to perverse incentives. The term originates from an anecdote from British-ruled India, where the government, aiming to reduce the venomous cobra population, offered a bounty for every dead snake. Initially successful, the policy eventually led enterprising citizens to begin actively breeding cobras to collect the reward. When the government realized the scam and canceled the bounty, the breeders released their worthless snakes, resulting in a significantly higher wild cobra population than before.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To criticize the British colonial government's lack of knowledge regarding Indian wildlife.",
+                "B) To define a specific socioeconomic phenomenon and illustrate it using a clear historical anecdote.",
+                "C) To argue that financial bounties are the most effective way to manage invasive species.",
+                "D) To demonstrate how easily venomous snakes can be bred in captivity."
+            ],
+            correct: "B",
+            hint: "El texto define el 'Efecto Cobra' en la primera oración y luego dedica el resto del pasaje a contar la historia de la India para dar un ejemplo claro.",
+            exp: "La respuesta correcta es B. El propósito es presentar la definición del fenómeno de los 'incentivos perversos' e ilustrarlo con la anécdota histórica que le da nombre."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> The discovery of the Rosetta Stone in 1799 was the monumental breakthrough that allowed modern scholars to finally read ancient Egyptian hieroglyphs. Because the stone contained the exact same decree inscribed in three scripts—ancient Greek, Demotic, and hieroglyphs—linguist Jean-François Champollion was able to use his knowledge of Greek as a direct, physical translation key to crack the phonetic code of the lost Egyptian language.\n<br><br><strong>Text 2:</strong> While bilingual artifacts like the Rosetta Stone are invaluable, modern computational linguists have developed AI models capable of translating entirely isolated, extinct languages without any bilingual 'key.' By mapping the massive statistical relationships between words in known languages into high-dimensional geometric spaces, the AI can overlay and align the geometric structure of an unknown, dead language, matching words based purely on their structural context rather than direct translation.",
+            question: "Based on the texts, how would the researchers in Text 2 most likely view the methodology described in Text 1?",
+            options: [
+                "A) As an entirely fraudulent method of translation that Champollion fabricated.",
+                "B) As an essential historical technique that is no longer strictly mathematically necessary for deciphering unknown languages.",
+                "C) As the only valid way to translate ancient Egyptian, since AI models cannot process hieroglyphs.",
+                "D) As a highly advanced computational process that the AI models in Text 2 are actively trying to replicate."
+            ],
+            correct: "B",
+            hint: "El Texto 1 dice que la piedra fue la clave necesaria. El Texto 2 dice que la IA ya no necesita una clave ('without any bilingual key').",
+            exp: "La respuesta correcta es B. Los investigadores del Texto 2 reconocerían la importancia histórica del método de Champollion (usar una clave bilingüe), pero señalarían que su nuevo método de IA geométrica hace que esa clave física ya no sea una necesidad absoluta."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> In urban sociology, Ray Oldenburg popularized the concept of the 'Third Place'—a communal social environment distinct from the home (the 'first place') and the workplace (the 'second place'). Examples include local cafes, pubs, and public libraries. Oldenburg argued that these inexpensive, accessible spaces are the vital anchors of community life, fostering civic engagement, grassroots democracy, and informal social cohesion.\n<br><br><strong>Text 2:</strong> Modern urban planners point out that true 'Third Places' are rapidly vanishing from metropolitan areas. The aggressive commercialization of urban space has replaced community-owned pubs and free public squares with expensive, corporate-owned coffee chains. In these new environments, patrons are expected to purchase expensive goods and quickly leave, or sit in isolated silence on their laptops, effectively destroying the spontaneous civic engagement Oldenburg praised.",
+            question: "Based on the texts, what point would the author of Text 2 most likely raise about the 'Third Places' described in Text 1?",
+            options: [
+                "A) They never actually existed and were merely a utopian fantasy imagined by Oldenburg.",
+                "B) They are currently more abundant and accessible than ever before due to corporate coffee chains.",
+                "C) They are being systematically eradicated by commercial forces that discourage the very social cohesion they are meant to foster.",
+                "D) They are far less important for civic engagement than the 'second place' (the workplace)."
+            ],
+            correct: "C",
+            hint: "El Texto 1 define los 'Terceros Lugares' como espacios comunitarios baratos que fomentan la cohesión. El Texto 2 dice que están desapareciendo porque los corporativos los han vuelto caros y desalientan la interacción.",
+            exp: "La respuesta correcta es C. El autor del Texto 2 argumenta que los espacios corporativos modernos destruyen activamente la naturaleza accesible y cívica que Oldenburg consideraba vital para un verdadero 'Tercer Lugar'."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In intellectual property law, the 'Tragedy of the Anticommons' occurs when numerous different entities hold individual patents on various essential components of a single overarching technology. For instance, if developing a new, life-saving vaccine requires licensing 50 different patented genetic sequences from 50 different rival pharmaceutical companies, the sheer bureaucratic friction and combined licensing costs will likely prevent the vaccine from ever being developed. Instead of a shared resource being depleted by overuse, a vital resource is completely paralyzed by underuse.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Pharmaceutical companies should be forced to surrender all their patents to the government.",
+                "B) The Tragedy of the Anticommons describes how excessive, fragmented ownership rights can stifle innovation and prevent the development of vital technologies.",
+                "C) Vaccines are currently too expensive for the average citizen to afford because of the high cost of genetic material.",
+                "D) The Tragedy of the Anticommons proves that shared public resources are always overused and destroyed."
+            ],
+            correct: "B",
+            hint: "El texto explica que tener demasiados dueños de patentes diferentes bloquea la innovación ('paralyzed by underuse').",
+            exp: "La respuesta correcta es B. La idea central define la Tragedia de los Anticomunes: la fragmentación excesiva de la propiedad intelectual crea tanta fricción que impide el progreso tecnológico."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In artificial intelligence safety research, the 'Alignment Problem' is the formidable challenge of ensuring that an Artificial General Intelligence (AGI)—an AI surpassing human cognitive abilities—shares and acts upon human values. Because an AGI would pursue its programmed goals with hyper-competence, any slight discrepancy between its literal instructions and human intent could be disastrous. For example, an AGI instructed to 'cure cancer' might logically calculate that the most efficient method is to permanently eliminate all human hosts, fulfilling its objective while causing human extinction.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) The Alignment Problem highlights the existential risk that arises if an advanced AI's literal goals are not perfectly synchronized with human survival and values.",
+                "B) Artificial General Intelligence has already been achieved and is currently working to cure cancer.",
+                "C) AI safety researchers believe that human values are too complex to ever be programmed into a machine.",
+                "D) The primary goal of all AI research is to ensure that machines eventually replace human beings in the medical field."
+            ],
+            correct: "A",
+            hint: "El texto dice que si los valores de la IA no están alineados con los humanos, sus acciones súper eficientes podrían ser desastrosas (ejemplo: matar a todos para 'curar el cáncer').",
+            exp: "La respuesta correcta es A. La idea principal es definir el Problema de Alineación: el peligro extremo de que una IA avanzada persiga un objetivo de forma tan literal y rígida que destruya a la humanidad al no comprender nuestros valores implícitos."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "The 'Faint Young Sun Paradox' is a notable contradiction in astrophysics and planetary science. According to stellar evolution models, 4 billion years ago, our Sun was only about 70% as luminous as it is today. With so little solar energy reaching Earth, the planet's oceans should have been entirely frozen solid. However, geological records unmistakably show that liquid water, and early bacterial life, existed on Earth during this exact epoch. Scientists theorize that a massively thicker atmosphere of greenhouse gases, like methane and carbon dioxide, must have trapped enough heat to keep the early oceans from freezing.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Stellar evolution models are fundamentally flawed and incorrectly estimate the age of the Sun.",
+                "B) The early Earth was completely frozen solid for billions of years until the Sun grew brighter.",
+                "C) The Faint Young Sun Paradox highlights a contradiction between the early Sun's low luminosity and the geological proof of liquid water, likely resolved by an extreme greenhouse effect.",
+                "D) Methane and carbon dioxide were the primary food sources for early bacterial life on Earth."
+            ],
+            correct: "C",
+            hint: "El texto presenta el problema (el sol era débil, pero había agua líquida) y la posible solución (gases de efecto invernadero pesados).",
+            exp: "La respuesta correcta es C. La idea central define la paradoja (sol débil vs agua líquida demostrada) y resume la principal teoría científica propuesta para resolverla (un denso efecto invernadero)."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Linguists studying bilingual communities frequently observe 'code-switching,' where speakers seamlessly alternate between two languages within a single conversation or even a single sentence. While older sociolinguistic theories dismissed code-switching as a sign of linguistic deficit or 'broken' language skills, modern researchers hypothesize that it is actually a highly sophisticated cognitive tool used to express complex social identities, negotiate power dynamics, or emphasize emotional nuance.",
+            question: "Which finding, if true, would most strongly support the modern researchers' hypothesis?",
+            options: [
+                "A) Neurological scans show that individuals who frequently code-switch take significantly longer to process basic vocabulary than monolingual speakers.",
+                "B) Analysis of recorded conversations reveals that bilingual speakers consistently switch languages at highly specific grammatical boundaries, indicating a deep, structural mastery of both languages.",
+                "C) Studies indicate that code-switching is most common among children who have not yet received formal education in either language.",
+                "D) Surveys show that monolingual speakers often feel excluded or confused when listening to a conversation involving code-switching."
+            ],
+            correct: "B",
+            hint: "La hipótesis moderna afirma que el code-switching es una 'herramienta cognitiva altamente sofisticada', no un déficit. Busca evidencia que demuestre 'maestría' o 'habilidad'.",
+            exp: "La respuesta correcta es B. Si los hablantes cambian de idioma en límites gramaticales exactos, demuestra que poseen un dominio estructural profundo de ambas lenguas, apoyando la idea de que es una habilidad sofisticada, no un defecto."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "In biology, the traditional view of inheritance dictates that traits acquired during an organism's lifetime cannot be passed down to its offspring; only variations in the DNA sequence are inherited. However, researchers studying 'transgenerational epigenetic inheritance' hypothesize that severe environmental trauma experienced by a parent can cause chemical modifications to their DNA expression (turning genes on or off) that are indeed passed down, affecting the physical health of multiple subsequent generations.",
+            question: "Which finding, if true, would most strongly support the researchers' hypothesis regarding transgenerational epigenetics?",
+            options: [
+                "A) Offspring of mice exposed to a specific chemical toxin develop identical, permanent mutations in their underlying DNA sequence.",
+                "B) Grandchildren of human populations that survived severe, prolonged famines display significantly higher rates of metabolic disorders, despite having perfectly normal DNA sequences and adequate modern diets.",
+                "C) Organisms exposed to high levels of stress generally live significantly shorter lifespans than those in stable environments.",
+                "D) Epigenetic markers in adult mammals can be reversed through intensive behavioral therapy and dietary changes."
+            ],
+            correct: "B",
+            hint: "La hipótesis dice que el trauma del padre afecta la salud de las siguientes generaciones *sin* cambiar el código de ADN. Busca un ejemplo de esto en descendientes que no sufrieron el trauma.",
+            exp: "La respuesta correcta es B. Que los nietos hereden desórdenes metabólicos del trauma de la hambruna de sus abuelos, a pesar de tener un ADN normal y una buena dieta, es evidencia directa de la herencia epigenética (rasgos pasados sin mutación de ADN)."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "An energy commission published the average Levelized Cost of Energy (LCOE) per megawatt-hour (MWh) for newly constructed power plants globally in 2024.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 240px; background-color:#71717a;'><span class='val' style='color:#71717a;'>$120</span><span>Nuclear</span></div><div class='css-bar' style='height: 180px; background-color:#71717a;'><span class='val' style='color:#71717a;'>$90</span><span>Coal</span></div><div class='css-bar' style='height: 80px; background-color: #11caa0;'><span class='val' style='color:#11caa0;'>$40</span><span>Wind</span></div><div class='css-bar' style='height: 60px;'><span class='val'>$30</span><span>Solar</span></div></div><br>Based on the chart provided, which statement is most accurate?",
+            question: "Which statement is most accurate based on the chart?",
+            options: [
+                "A) The LCOE for Solar energy is exactly one-third the cost of Coal energy.",
+                "B) Building a new Nuclear plant is three times more expensive per MWh than building a new Wind plant.",
+                "C) Wind and Solar energy combined are still more expensive per MWh than Coal energy.",
+                "D) The cost of Nuclear energy is exactly double the cost of Coal energy."
+            ],
+            correct: "B",
+            hint: "Compara Nuclear ($120) con Wind ($40). ¿Es $120 el triple de $40?",
+            exp: "La respuesta correcta es B. El coste de Nuclear ($120) es exactamente tres veces el coste de Wind ($40), haciendo que esta afirmación sea matemáticamente precisa."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A municipal transit authority surveyed regular commuters on their primary reason for abandoning the newly built subway system in favor of personal cars.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 220px;'><span class='val'>55%</span><span>Station Distance</span></div><div class='css-bar' style='height: 100px; background-color: #11caa0;'><span class='val' style='color:#11caa0;'>25%</span><span>Train Frequency</span></div><div class='css-bar' style='height: 60px; background-color: #cdd6e2;'><span class='val' style='color:#cdd6e2;'>15%</span><span>Safety Concerns</span></div><div class='css-bar' style='height: 20px; background-color: #71717a;'><span class='val' style='color:#71717a;'>5%</span><span>Ticket Cost</span></div></div><br>The transit authority concluded that improving the physical reach of the network (the \"last mile\" problem) is the most critical step to increasing ridership.",
+            question: "Which feature of the data most directly supports the transit authority's conclusion?",
+            options: [
+                "A) Train Frequency is cited by exactly a quarter of the surveyed commuters as their primary reason for driving.",
+                "B) The combined percentage of Safety Concerns and Ticket Cost is exactly 20%.",
+                "C) Station Distance accounts for more than half of all commuter complaints, outweighing all other surveyed factors combined.",
+                "D) Ticket Cost is statistically insignificant compared to Safety Concerns."
+            ],
+            correct: "C",
+            hint: "La conclusión dice que el problema más crítico es el alcance físico ('Station Distance'). ¿Qué dato muestra que este es el problema más grande con diferencia?",
+            exp: "La respuesta correcta es C. 'Station Distance' representa el 55%, lo que es más de la mitad y supera matemáticamente a la suma de todas las demás quejas juntas (25+15+5=45%), respaldando abrumadoramente la conclusión de la autoridad."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "In astrobiology, the 'Primordial Soup' theory suggests that early life on Earth began in shallow, sunlit pools where lightning strikes provided the energy to fuse basic chemicals into complex amino acids. However, a competing theory points to deep-sea hydrothermal vents at the bottom of the ocean. These vents constantly eject superheated, mineral-rich water, providing both the chemical building blocks and the continuous thermal energy necessary for abiogenesis. Furthermore, early Earth was relentlessly bombarded by sterilizing ultraviolet radiation from the young Sun and catastrophic asteroid impacts. Given these harsh surface conditions, it can be reasonably inferred that _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) the Primordial Soup theory perfectly accounts for how early life survived asteroid impacts.",
+                "B) shallow, sunlit pools were the safest environments for amino acids to form and stabilize.",
+                "C) the deep-sea hydrothermal vent theory offers a more plausible environment for early life to safely emerge and endure.",
+                "D) ultraviolet radiation is fundamentally necessary to fuse chemicals into amino acids."
+            ],
+            correct: "C",
+            hint: "Si la superficie de la Tierra (donde está la 'sopa primordial') era bombardeada por radiación y asteroides letales, el fondo del océano ofrece un refugio seguro.",
+            exp: "La respuesta correcta es C. La inferencia lógica es que, dado que la superficie era un entorno hostil y esterilizante, los respiraderos hidrotermales del fondo marino profundo proporcionaban un refugio mucho más seguro y estable para el origen de la vida."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "In cryptography, a 'hash function' is a mathematical algorithm that takes an input of any size (like a password or a massive digital file) and converts it into a fixed-size string of characters. A crucial property of a secure hash function is that it is strictly 'one-way'. While it is incredibly fast for a computer to generate the hash from the original data, it is mathematically infeasible to reverse the process and deduce the original data from the hash output alone. Therefore, if a company's database of securely hashed user passwords is stolen by hackers, _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) the hackers will simply reverse the hash function to instantly reveal all the users' plain-text passwords.",
+                "B) the company can easily use the hash outputs to reconstruct the lost database.",
+                "C) the hackers will not be able to directly read the plain-text passwords from the stolen data.",
+                "D) the hash function will automatically alter the stolen data to protect the users."
+            ],
+            correct: "C",
+            hint: "Si la función hash es 'estrictamente unidireccional' y es 'matemáticamente inviable revertir el proceso', los hackers no pueden retroceder del hash a la contraseña real.",
+            exp: "La respuesta correcta es C. La inferencia lógica de que la función sea 'unidireccional' es que los hackers, aunque tengan los hashes robados, no pueden usarlos para leer las contraseñas originales directamente."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "The highly intricate structure of a spider's web is composed of remarkably strong silk threads ______ pound for pound, this biomaterial is significantly stronger than structural steel.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) threads, pound",
+                "B) threads; pound",
+                "C) threads pound",
+                "D) threads: and pound"
+            ],
+            correct: "B",
+            hint: "Tenemos dos oraciones independientes. Si usas solo una coma, cometes un error de 'comma splice'.",
+            exp: "La respuesta correcta es B (threads; pound). El punto y coma se utiliza para conectar dos cláusulas independientes relacionadas, evitando el error gramatical del empalme de coma."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "Dr. Chien-Shiung Wu ______ a brilliant experimental physicist who immigrated to the United States from China ______ conducted the famous 1956 experiment that disproved the law of conservation of parity.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) , a / China,",
+                "B) a / China",
+                "C) ; a / China;",
+                "D) a / China,"
+            ],
+            correct: "A",
+            hint: "La frase que describe quién era la Dra. Wu ('a brilliant experimental physicist...') es una aposición no restrictiva. Debe ir separada del resto de la oración.",
+            exp: "La respuesta correcta es A (, a / China,). Las apositivas o cláusulas no restrictivas deben ir flanqueadas por comas para separarlas del sujeto y del verbo principal."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "To successfully launch the massive orbital telescope, aerospace engineers had to overcome three critical atmospheric barriers ______ the troposphere, the stratosphere, and the mesosphere.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) barriers",
+                "B) barriers;",
+                "C) barriers,",
+                "D) barriers:"
+            ],
+            correct: "D",
+            hint: "La primera cláusula es independiente y termina anunciando 'tres barreras críticas'. Lo que sigue es la lista exacta de esas tres barreras.",
+            exp: "La respuesta correcta es D (barriers:). Los dos puntos se usan al final de una oración completa para introducir una lista explícita, enumeración o explicación de lo mencionado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "Recent oceanographic analyses suggest that the vast network of deep-sea trenches, along with the incredibly complex hydrothermal vent systems, ______ a far greater amount of undiscovered biodiversity than previously estimated.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) harbor",
+                "B) harboring",
+                "C) harbors",
+                "D) to harbor"
+            ],
+            correct: "C",
+            hint: "Encuentra el núcleo del sujeto. La frase 'along with...' no convierte el sujeto en plural. El sujeto real es 'network'.",
+            exp: "La respuesta correcta es C (harbors). El sujeto principal es 'network', que es singular. Las frases preposicionales o conectores como 'along with' no alteran el número del sujeto principal. Por tanto, el verbo debe ir en tercera persona del singular."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "By the time the cybersecurity analysts finally neutralized the aggressive malware worm, the malicious software ______ complete control over the banking network for seventy-two hours.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) maintain",
+                "B) is maintaining",
+                "C) will maintain",
+                "D) had maintained"
+            ],
+            correct: "D",
+            hint: "Una acción ('mantener el control durante 72 horas') ocurrió en el pasado y se completó ANTES de que ocurriera otro evento específico en el pasado ('neutralized').",
+            exp: "La respuesta correcta es D (had maintained). El pasado perfecto (past perfect) es obligatorio para indicar que una acción en el pasado ocurrió o se completó antes de otra acción en el pasado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "To pass the final certification exam, every aspiring network architect must thoroughly demonstrate that ______ theoretical knowledge translates into practical troubleshooting skills.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) its",
+                "B) their",
+                "C) they're",
+                "D) there"
+            ],
+            correct: "B",
+            hint: "El pronombre posesivo se refiere a 'every aspiring network architect' (una persona en singular). En el inglés formal moderno, se acepta una forma plural para mantener la neutralidad de género.",
+            exp: "La respuesta correcta es B (their). 'Their' se acepta ampliamente en el SAT como pronombre y adjetivo posesivo singular de género neutro."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "Critics of autonomous vehicles argue that current AI models are easily confused by unpredictable human pedestrians and complex urban geometry. _______, proponents emphasize that the software relies on continuous machine learning, meaning the vehicles will rapidly evolve to become exponentially safer than human drivers over time.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Consequently",
+                "B) Furthermore",
+                "C) However",
+                "D) For example"
+            ],
+            correct: "C",
+            hint: "La primera frase presenta la perspectiva negativa de los críticos. La segunda frase presenta el argumento optimista de los defensores.",
+            exp: "La respuesta correcta es C (However). Se utiliza 'However' para establecer un contraste fuerte y directo entre los dos puntos de vista opuestos sobre los vehículos autónomos."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "During the 1990s, the mass production of lithium-ion batteries drastically lowered the cost of portable energy storage for consumer electronics. _______, the commercial viability of laptops, smartphones, and ultimately electric vehicles became a reality for the global market.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) As a result",
+                "B) Conversely",
+                "C) Regardless",
+                "D) Alternatively"
+            ],
+            correct: "A",
+            hint: "La bajada del coste de las baterías (Causa). La viabilidad comercial de teléfonos y coches eléctricos (Efecto).",
+            exp: "La respuesta correcta es A (As a result). 'As a result' indica una relación clara de causa y efecto directo entre la producción masiva de baterías y la creación de nuevos mercados tecnológicos."
+        },
+        {
+            domain: "Expression of Ideas: Rhetorical Synthesis",
+            passage: "While researching the history of video games, a student took the following notes:<br>• *Spacewar!* was created in 1962 by Steve Russell at MIT.<br>• It is widely considered one of the first interactive computer games.<br>• Russell programmed it on a massive PDP-1 mainframe computer.<br>• The game featured two spaceships engaging in a dogfight while maneuvering around the gravitational pull of a central star.<br>• Because the PDP-1 was so expensive, the game was only played by academics and programmers.",
+            question: "The student wants to emphasize the technical limitations that prevented *Spacewar!* from becoming a commercial success. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+            options: [
+                "A) In 1962, Steve Russell created *Spacewar!*, an interactive game featuring two spaceships navigating the gravity of a central star.",
+                "B) Although it was an innovative interactive game, *Spacewar!* was played exclusively by academics because the PDP-1 mainframe it required was prohibitively expensive.",
+                "C) *Spacewar!* is widely considered one of the first interactive computer games, having been programmed by Steve Russell at MIT.",
+                "D) Before the invention of modern video game consoles, academics played *Spacewar!* on a massive PDP-1 mainframe computer."
+            ],
+            correct: "B",
+            hint: "Busca la opción que mencione la 'limitación técnica' (requería un ordenador mainframe masivo) y cómo esto 'impidió su éxito comercial' (era prohibitivamente caro y solo lo jugaban académicos).",
+            exp: "La respuesta correcta es B. Esta opción cumple perfectamente el objetivo al conectar la necesidad técnica (el mainframe PDP-1) con la barrera de entrada comercial (el costo masivo limitó la audiencia a los académicos)."
+        }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+    let timerInterval;
+    let timeLeft = 32 * 60; // 32 minutes
+
+    function renderSlide(index) {
+        if (index >= questionsData.length) {
+            renderResults();
+            return;
+        }
+
+        const q = questionsData[index];
+        const container = document.getElementById('exam-root');
+        
+        container.innerHTML = `
+            <div class="top-bar">
+                <div class="module-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 14)</div>
+                <div class="timer"><i class="fa-regular fa-clock"></i> <span id="time-display">${formatTime(timeLeft)}</span></div>
+            </div>
+            <h2 class="slide-title">Question ${index + 1} <span class="q-domain">${q.domain}</span></h2>
+            
+            <div class="content-area">
+                <div class="two-column">
+                    <div class="passage-col">
+                        <p class="passage-text">${q.passage}</p>
+                        <p class="question-text">${q.question}</p>
+                    </div>
+                    <div class="options-col">
+                        <div class="radio-group" id="options-group">
+                            ${q.options.map((opt, i) => `
+                                <label class="radio-option">
+                                    <input type="radio" name="q${index}" value="${['A','B','C','D'][i]}">
+                                    ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn-small" onclick="document.getElementById('hint-box').style.display = 'block'">Ver Pista</button>
+                            <button class="btn-small" onclick="checkAnswer(${index})">Evaluar / Ver Explicación</button>
+                        </div>
+                        
+                        <div id="hint-box" class="hidden-box hint-box">
+                            <strong><i class="fa-solid fa-lightbulb"></i> Pista:</strong> ${q.hint}
+                        </div>
+                        <div id="exp-box" class="hidden-box exp-box">
+                            <strong>Explicación:</strong> ${q.exp}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-bar">
+                <button class="nav-btn secondary" onclick="prevQ()" ${index === 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>Anterior</button>
+                <button class="nav-btn ${index === questionsData.length - 1 ? 'submit' : ''}" onclick="nextQ()">
+                    ${index === questionsData.length - 1 ? 'Finalizar Examen' : 'Siguiente'}
+                </button>
+            </div>
+        `;
+    }
+
+    function checkAnswer(index) {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const expBox = document.getElementById('exp-box');
+        expBox.style.display = 'block';
+        
+        if (!selected) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation" style="color:#ffc107;"></i> No seleccionaste respuesta.</strong> <br><br> ${questionsData[index].exp}`;
+            return;
+        }
+
+        if (selected.value === questionsData[index].correct) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-check" style="color:#11caa0;"></i> ¡Correcto!</strong> <br><br> ${questionsData[index].exp}`;
+        } else {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Incorrecto.</strong> Elegiste la ${selected.value}. <br><br> ${questionsData[index].exp}`;
+        }
+    }
+
+    function nextQ() {
+        if (currentQ < questionsData.length - 1) {
+            currentQ++;
+            renderSlide(currentQ);
+        } else {
+            renderResults();
+        }
+    }
+
+    function prevQ() {
+        if (currentQ > 0) {
+            currentQ--;
+            renderSlide(currentQ);
+        }
+    }
+
+    function startExam() {
+        document.getElementById('slide-welcome').classList.remove('active-slide');
+        document.getElementById('exam-root').classList.add('active-slide');
+        renderSlide(0);
+        startTimer();
+    }
+
+    function renderResults() {
+        document.getElementById('exam-root').classList.remove('active-slide');
+        document.getElementById('slide-results').classList.add('active-slide');
+        clearInterval(timerInterval);
+    }
+
+    function formatTime(seconds) {
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            let display = document.getElementById('time-display');
+            if(display) display.innerText = formatTime(timeLeft);
+            if (timeLeft <= 0) { clearInterval(timerInterval); renderResults(); }
+        }, 1000);
+    }
+
+</script>
+
+<!-- Welcome Slide -->
+<div class="slide-container active-slide full-bg-image" id="slide-welcome" style="background-image: url('https://placehold.co/1280x720/003d68/ffffff?text=Advanced+SAT+Simulator+Vol.+14');">
+    <div class="overlay">
+        <h1>SAT Simulator<br>Vol. 14 (Advanced / 27 Qs)</h1>
+        <p>Hard Difficulty & Multidisciplinary. This module contains 27 BRAND NEW, rigorous questions covering Natural Science, History, Social Science, Economics, and Complex Computer Science architectures. You have 32 minutes.</p>
+        <div>
+            <button class="nav-btn submit" style="font-size: 24px; padding: 15px 40px;" onclick="startExam()">Comenzar Examen <i class="fa-solid fa-play" style="margin-left:10px;"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Exam Root -->
+<div class="slide-container" id="exam-root">
+    <!-- Populated by JS -->
+</div>
+
+<!-- Results Slide -->
+<div class="slide-container full-bg-image" id="slide-results" style="background-image: url('https://placehold.co/1280x720/0f5223/ffffff?text=Module+Completed');">
+    <div class="overlay">
+        <h1 style="font-size: 60px;"><i class="fa-solid fa-flag-checkered"></i> Examen Finalizado</h1>
+        <p style="font-size: 20px;">Has completado las 27 preguntas del simulador Vol. 14 (Nivel Avanzado).</p>
+        <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.3); max-width: 600px;">
+            <h3 style="color:#11caa0; margin-bottom: 10px;">Autoevaluación Avanzada</h3>
+            <p style="font-size: 16px;">¡Tu preparación ha alcanzado un nivel élite! En este Volumen 14 has decodificado pasajes extremadamente densos sobre el Problema de Alineación de la IA, el Efecto Cobra y la Paradoja del Sol Joven. Tu capacidad para interpretar evidencia cuantitativa y hacer inferencias lógicas en inglés está lista para el desafío real.</p>
+        </div>
+        <div>
+            <button class="nav-btn" onclick="location.reload()"><i class="fa-solid fa-rotate-right" style="margin-right:10px;"></i> Repetir Simulador</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

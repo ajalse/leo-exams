@@ -1,0 +1,724 @@
+<!DOCTYPE html><html lang="es"><head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator - 27 Questions (Vol. 8 Advanced)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #121212; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: "DM Sans", sans-serif;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            background-color: #f3f0df; 
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; 
+            flex-direction: column;
+            height: 100%;
+            max-height: 720px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+        }
+        
+        .slide-container.active-slide {
+            display: flex;
+        }
+
+        /* Top Bar for Exam */
+        .top-bar {
+            background-color: #005088; 
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            height: 70px;
+            width: 100%;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .top-bar .module-title { font-size: clamp(16px, 2vw, 20px); font-weight: 700; font-family: "Merriweather", serif; }
+        .top-bar .timer { font-size: clamp(18px, 2vw, 24px); font-weight: 700; background: #11caa0; color: #121212; padding: 5px 15px; border-radius: 20px; }
+
+        h1, h2, h3 { font-family: "Merriweather", serif; color: #005088; }
+        p, li, label { font-family: "DM Sans", sans-serif; font-size: 16px; line-height: 1.5; color: #121212; }
+        
+        .slide-title {
+            font-size: clamp(20px, 3vw, 32px);
+            padding: 15px 40px 10px;
+            border-bottom: 2px solid #cdd6e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .q-domain { font-size: clamp(12px, 1.5vw, 16px); font-family: "DM Sans", sans-serif; background-color: #cdd6e2; padding: 5px 12px; border-radius: 12px; color: #005088; }
+
+        /* Main Content Areas */
+        .content-area {
+            display: flex;
+            flex-grow: 1;
+            padding: 15px 40px;
+            gap: 30px;
+            min-height: 0; /* Fixes flexbox overflow issue */
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .passage-col, .options-col {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cdd6e2;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .passage-text {
+            font-family: "Merriweather", serif;
+            font-size: clamp(14px, 1.8vw, 17px);
+            line-height: 1.7;
+            border-left: 5px solid #11caa0;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-text { font-weight: 700; font-size: clamp(16px, 2vw, 19px); margin-bottom: 20px; }
+
+        /* Options & Interactions */
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 12px;
+            border: 2px solid #cdd6e2;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            font-size: clamp(14px, 1.6vw, 16px);
+        }
+        .radio-option:hover { background-color: #f0f4f8; border-color: #005088; }
+        .radio-option input[type="radio"] { margin-top: 4px; transform: scale(1.2); accent-color: #005088; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-small {
+            background-color: #cdd6e2;
+            color: #005088;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: "DM Sans", sans-serif;
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+        .btn-small:hover { background-color: #11caa0; color: #121212; }
+
+        .hidden-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: clamp(14px, 1.6vw, 16px);
+            display: none; 
+        }
+        .hint-box { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .exp-box { background-color: #e2e3e5; border-left: 4px solid #6c757d; }
+
+        /* Bottom Nav */
+        .nav-bar {
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            border-top: 1px solid #cdd6e2;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        .nav-btn {
+            background-color: #005088;
+            color: #ffffff;
+            border: none;
+            padding: 10px 25px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { background-color: #003d68; }
+        .nav-btn.secondary { background-color: transparent; color: #005088; border: 2px solid #005088; }
+        .nav-btn.secondary:hover { background-color: #f3f0df; }
+        .nav-btn.submit { background-color: #11caa0; color: #121212; }
+
+        .full-bg-image { background-size: cover; background-position: center; }
+        .full-bg-image .overlay {
+            background: linear-gradient(to right, rgba(0, 80, 136, 0.95), rgba(0, 80, 136, 0.7));
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10%;
+            color: white;
+        }
+        .full-bg-image h1 { color: #f3f0df; font-size: clamp(40px, 6vw, 80px); margin-bottom: 20px; }
+        .full-bg-image p { color: #ffffff; font-size: clamp(16px, 2vw, 24px); max-width: 800px; margin-bottom: 40px; }
+
+        /* CSS Charts */
+        .css-bar-chart { display: flex; align-items: flex-end; gap: 30px; height: 200px; padding: 20px 0 0 40px; border-bottom: 2px solid #121212; border-left: 2px solid #121212; margin-top:20px;}
+        .css-bar { width: 40px; background-color: #005088; position: relative; display: flex; justify-content: center; }
+        .css-bar span { position: absolute; bottom: -30px; font-weight: 700; font-size: 14px; }
+        .css-bar .val { position: absolute; top: -25px; font-weight: 700; font-size: 14px; color: #005088;}
+        
+        /* Responsive Adjustments for Mobile/Tablet */
+        @media (max-width: 768px) {
+            .two-column { grid-template-columns: 1fr; }
+            .content-area { padding: 15px; }
+            .passage-col, .options-col { height: auto; min-height: 300px; }
+            .slide-container { border-radius: 0; }
+            .css-bar-chart { height: 150px; gap: 15px;}
+            .css-bar { width: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a id="boton-inicio" href="/">🏠︎</a>
+<script>
+    const questionsData = [
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "As the Roman Empire expanded across Europe and the Mediterranean, it rarely sought to completely obliterate local cultures. Instead, the empire's administrators actively sought to _______ native deities, myths, and customs with the established Roman pantheon, creating a highly effective syncretic religion that eased the assimilation of conquered peoples.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) subvert", "B) eradicate", "C) amalgamate", "D) eschew"],
+            correct: "C",
+            hint: "El texto dice que los romanos no querían 'obliterar' (destruir) las culturas, sino crear una religión 'sincretista' (mezclada). Busca una palabra que signifique 'mezclar' o 'unir'.",
+            exp: "La respuesta correcta es C (amalgamate). Amalgamar significa combinar, unir o fusionar elementos distintos en un todo, lo cual describe perfectamente el proceso de sincretismo religioso."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "In ecological networks, the sudden introduction of a hyper-competitive invasive species is often profoundly _______ to isolated island ecosystems. Because the native flora and fauna evolved without natural defenses against such aggressive predators, their populations can plummet in a matter of years.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) salutary", "B) deleterious", "C) ephemeral", "D) anomalous"],
+            correct: "B",
+            hint: "La introducción de esta especie hace que las poblaciones nativas 'caigan en picado' (plummet). Busca una palabra que signifique 'dañino' o 'perjudicial'.",
+            exp: "La respuesta correcta es B (deleterious). 'Deleterious' significa perjudicial, nocivo o dañino, lo cual encaja perfectamente con el efecto de una especie invasora sobre un ecosistema vulnerable."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "Modern quantum encryption relies on the fundamental, probabilistic principles of quantum mechanics rather than classical mathematical complexity. Theoretically, this methodology renders the transmitted data completely _______, as any third-party attempt to intercept the quantum key inherently alters its state and alerts the legitimate users.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) vulnerable", "B) transparent", "C) impregnable", "D) obsolete"],
+            correct: "C",
+            hint: "Si cualquier intento de intercepción alerta a los usuarios y las leyes de la física protegen los datos, el sistema es invencible o impenetrable.",
+            exp: "La respuesta correcta es C (impregnable). 'Impregnable' significa incapaz de ser capturado, roto o penetrado; es sinónimo de invulnerable."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "During the Italian Renaissance, the powerful Medici family was famously _______; their lavish financial support of artists, architects, and scientists like Michelangelo and Galileo fueled an unprecedented era of cultural and intellectual flourishing in Florence.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) munificent", "B) parsimonious", "C) bellicose", "D) indolent"],
+            correct: "A",
+            hint: "El texto menciona su 'lavish financial support' (lujoso apoyo financiero). Se busca un adjetivo que signifique extremadamente generoso.",
+            exp: "La respuesta correcta es A (munificent). 'Munificent' significa caracterizado por una gran generosidad, especialmente con el dinero. Contrasta con 'parsimonious' (tacaño)."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "The concept of dark matter remains one of astrophysics' most frustratingly abstract puzzles. Although it exerts a _______ gravitational influence that prevents rapidly spinning galaxies from tearing themselves apart, it emits no light, interacts with no electromagnetic radiation, and remains entirely invisible to our most advanced telescopes.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) circumscribed", "B) negligible", "C) illusory", "D) pervasive"],
+            correct: "D",
+            hint: "La gravedad de la materia oscura mantiene unidas a galaxias enteras, por lo que su influencia debe ser extensa, dominante o generalizada.",
+            exp: "La respuesta correcta es D (pervasive). 'Pervasive' significa que se extiende o está presente en todas partes. Describe bien una influencia gravitacional que afecta a toda una galaxia."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In the mid-19th century, the rapid transition from agrarian economies to industrialized factory systems generated unprecedented wealth for factory owners. However, this shift simultaneously subjected laborers to grueling 14-hour workdays, dangerous machinery, and unlivable wages. Realizing that an individual worker possessed zero bargaining power against wealthy industrialists, laborers began organizing into trade unions. These early unions weaponized the collective threat of labor strikes to force factory owners to the negotiating table.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To argue that agrarian economies were fundamentally more stable than industrialized systems.",
+                "B) To explain the specific socioeconomic catalysts that spurred the formation of early collective bargaining organizations.",
+                "C) To criticize 19th-century factory owners for their lack of technological innovation.",
+                "D) To outline the specific legal demands made by the first trade unions during a labor strike."
+            ],
+            correct: "B",
+            hint: "El texto explica por qué los trabajadores pasaron de sufrir individualmente a organizarse en sindicatos (trade unions) para usar la huelga como arma.",
+            exp: "La respuesta correcta es B. El propósito principal es explicar las causas (las terribles condiciones y la falta de poder individual) que llevaron a la creación de los primeros sindicatos (organizaciones de negociación colectiva)."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In distributed ledger technology, consensus mechanisms are vital for validating transactions without a central authority. The traditional 'Proof of Work' (PoW) algorithm requires network nodes to expend massive amounts of computational power—and therefore electricity—to solve cryptographic puzzles. Conversely, the newer 'Proof of Stake' (PoS) model randomly selects validators based on the amount of cryptocurrency they hold and are willing to 'lock up' as collateral, reducing the network's energy consumption by over 99%.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To persuade investors to transition their portfolios from PoW cryptocurrencies to PoS cryptocurrencies.",
+                "B) To detail the specific mathematical formulas used to solve cryptographic puzzles in PoW systems.",
+                "C) To contrast the operational methodologies and environmental footprints of two different blockchain verification systems.",
+                "D) To argue that decentralized networks are inherently less secure than traditional, centralized banking authorities."
+            ],
+            correct: "C",
+            hint: "El autor explica cómo funciona PoW (mucha energía) y cómo funciona PoS (garantías y menos energía).",
+            exp: "La respuesta correcta es C. El propósito del texto es comparar (contrast) cómo funcionan los dos sistemas (Proof of Work y Proof of Stake) y destacar la gran diferencia en su consumo de energía (environmental footprint)."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> Advocates of Universal Basic Income (UBI) suggest that providing a guaranteed monthly stipend to all citizens will act as a powerful engine for socioeconomic mobility. By establishing a financial safety net, UBI would empower workers to leave exploitative, low-wage jobs and invest time in higher education or entrepreneurial ventures.\n<br><br><strong>Text 2:</strong> Macroeconomists caution that implementing a national UBI program would likely trigger severe hyperinflation. If every citizen suddenly receives a substantial influx of unconditional cash, landlords and retailers will simply raise prices to capture that new capital, entirely neutralizing the purchasing power of the UBI stipend.",
+            question: "Based on the texts, how would the author of Text 2 most likely respond to the claims made in Text 1?",
+            options: [
+                "A) By agreeing that UBI will increase socioeconomic mobility, but arguing it will disproportionately harm the ultra-wealthy.",
+                "B) By arguing that the anticipated empowerment and financial security of workers will be negated by inevitable price surges.",
+                "C) By suggesting that workers will use the UBI stipend to buy luxury goods rather than invest in education.",
+                "D) By proposing that UBI should only be distributed to entrepreneurs and students."
+            ],
+            correct: "B",
+            hint: "El Texto 1 dice que el UBI empoderará financieramente a los trabajadores. El Texto 2 dice que la inflación anulará (neutralizará) ese poder adquisitivo.",
+            exp: "La respuesta correcta es B. El autor del Texto 2 sostiene que la inflación absorberá el dinero extra, anulando así el empoderamiento y la seguridad financiera prometidos en el Texto 1."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> For decades, the dominant paradigm in evolutionary biology was strictly Darwinian: natural selection was viewed as the sole, omnipresent driver of evolutionary change. Every genetic mutation that spread through a population was assumed to confer some specific, tangible survival advantage to the organism.\n<br><br><strong>Text 2:</strong> In the 1960s, Motoo Kimura proposed the Neutral Theory of Molecular Evolution. Kimura demonstrated that at the molecular DNA level, the vast majority of evolutionary changes are actually caused by 'genetic drift'—the random, statistical fluctuation of neutral mutations that offer absolutely no survival advantage or disadvantage to the organism.",
+            question: "Based on the texts, how would Motoo Kimura (Text 2) most likely view the 'dominant paradigm' described in Text 1?",
+            options: [
+                "A) As an entirely fabricated theory with no basis in actual biological science.",
+                "B) As an accurate description of how molecular DNA evolves, but inaccurate for macroscopic traits.",
+                "C) As a theory that significantly overstates the universality of natural selection, particularly at the molecular level.",
+                "D) As the only valid explanation for how random statistical fluctuations affect populations."
+            ],
+            correct: "C",
+            hint: "El paradigma de Darwin (Texto 1) dice que TODO es selección natural. Kimura (Texto 2) dice que a nivel molecular, la MAYORÍA de los cambios son aleatorios y neutrales.",
+            exp: "La respuesta correcta es C. Kimura vería el paradigma del Texto 1 como una exageración, ya que asume que todo es selección natural, ignorando que a nivel genético impera la mutación aleatoria (deriva genética)."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In the context of autonomous vehicles, split-second decision-making is a matter of life and death. If a self-driving car relies exclusively on a centralized cloud server to process its sensor data, the inherent network latency—the time it takes for data to travel to a distant server and back—could delay the car's braking system by crucial milliseconds. 'Edge computing' mitigates this fatal risk by processing data locally, directly within the vehicle's onboard computers, ensuring instantaneous reaction times.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Cloud computing is becoming obsolete due to the high costs of maintaining distant servers.",
+                "B) Autonomous vehicles process data much slower than human drivers.",
+                "C) Edge computing is essential for autonomous vehicles because it eliminates the dangerous latency caused by centralized cloud processing.",
+                "D) The braking systems of modern cars are entirely dependent on continuous internet connectivity."
+            ],
+            correct: "C",
+            hint: "El texto plantea el problema de la nube (latencia/retraso peligroso) y cómo el 'Edge computing' (procesamiento local) lo soluciona.",
+            exp: "La respuesta correcta es C. La idea central es explicar cómo el procesamiento local (Edge computing) resuelve el problema crítico del retraso de datos (latencia) en los vehículos autónomos."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "The term 'Agricultural Revolution' implies a sudden, dramatic upheaval in human history where hunter-gatherers abruptly dropped their spears and began farming. However, modern archaeological evidence paints a very different picture. The transition to agriculture was a grueling, millennia-long process characterized by trial and error. For thousands of years, humans lived in hybrid societies, supplementing their foraging with small-scale crop cultivation before fully committing to sedentary farming.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) The transition from foraging to agriculture was actually a gradual, protracted evolution rather than an abrupt revolution.",
+                "B) Hunter-gatherers actively resisted the adoption of agriculture because foraging was an easier lifestyle.",
+                "C) The Agricultural Revolution occurred much earlier in human history than archaeologists previously believed.",
+                "D) Hybrid societies were ultimately unsuccessful and quickly replaced by strictly agricultural communities."
+            ],
+            correct: "A",
+            hint: "El texto critica la palabra 'Revolución' (que implica rapidez) argumentando que en realidad fue un proceso de miles de años (gradual).",
+            exp: "La respuesta correcta es A. La idea principal es desmentir el mito de un cambio repentino, estableciendo que la adopción de la agricultura fue una evolución lenta y gradual."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "Given the immense age of the universe and its billions of potentially habitable planets, statistically, extraterrestrial civilizations should be abundant. Yet, we observe zero evidence of them—a contradiction known as the Fermi Paradox. To explain this eerie silence, some astrobiologists propose the 'Great Filter' hypothesis. This theory suggests that an incredibly difficult, almost insurmountable evolutionary or technological barrier exists that reliably prevents any civilization from surviving long enough to achieve interstellar travel.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Extraterrestrial life definitely exists but is intentionally hiding from humanity.",
+                "B) The Great Filter hypothesis offers an explanation for the Fermi Paradox by positing a universal barrier to advanced civilization development.",
+                "C) Human beings are the only species in the universe to have successfully bypassed the Great Filter.",
+                "D) The Fermi Paradox mathematically proves that the universe is not as old as astrophysicists claim."
+            ],
+            correct: "B",
+            hint: "El texto define la Paradoja de Fermi y luego presenta el 'Gran Filtro' como una hipótesis para explicar esa paradoja.",
+            exp: "La respuesta correcta es B. El texto presenta la hipótesis del 'Gran Filtro' (una barrera evolutiva/tecnológica) como la principal explicación propuesta para el silencio del universo (la Paradoja de Fermi)."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "For decades, historians attributed the abrupt collapse of the advanced Cahokian civilization in North America around 1350 CE to violent civil war or invasions. However, a modern contingent of environmental archaeologists hypothesizes that the collapse was primarily driven by catastrophic soil depletion; centuries of aggressive, monocultural maize farming completely stripped the earth of essential nutrients, leading to massive crop failures and starvation.",
+            question: "Which finding, if true, would most strongly support the environmental archaeologists' hypothesis?",
+            options: [
+                "A) Excavations of the Cahokian perimeter reveal the presence of massive wooden defensive palisades built shortly before 1350 CE.",
+                "B) Deep soil core samples taken from ancient Cahokian farmlands show a sudden, severe absence of nitrogen and organic matter dating exactly to the period of collapse.",
+                "C) Skeletal remains from the 14th century show a high frequency of bone trauma consistent with hand-to-hand combat.",
+                "D) Artifacts indicate that Cahokian farmers possessed advanced knowledge of crop rotation and natural fertilizers."
+            ],
+            correct: "B",
+            hint: "La hipótesis dice que la culpa fue del agotamiento extremo del suelo (soil depletion) por cultivar demasiado maíz. Busca evidencia física en la tierra.",
+            exp: "La respuesta correcta es B. Encontrar muestras de suelo de esa época que carezcan severamente de nutrientes (nitrógeno) es la evidencia directa perfecta para respaldar la teoría del agotamiento del suelo."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "When interacting with Large Language Models (LLMs), users often experience 'hallucinations'—instances where the AI confidently generates completely false or nonsensical information. Some software engineers argue that these hallucinations are not caused by inherent flaws in the neural network's processing algorithm, but rather by vast 'blind spots' in the model's training data, forcing the AI to guess blindly when asked about niche topics.",
+            question: "Which finding, if true, would most strongly support the software engineers' argument?",
+            options: [
+                "A) The LLM's processing algorithm requires constant manual updates to prevent syntax errors.",
+                "B) The LLM hallucinates equally across all subjects, regardless of how much training data it processed for a given topic.",
+                "C) The LLM provides 100% factually accurate answers when queried on topics heavily represented in its training data, but fabricates facts entirely when queried on unrepresented subjects.",
+                "D) Developers discover that reducing the size of the neural network's hidden layers eliminates all hallucinations."
+            ],
+            correct: "C",
+            hint: "El argumento es que el modelo falla porque le faltan datos en temas específicos ('blind spots'), no porque su cerebro (algoritmo) esté roto. Si esto es cierto, debería funcionar perfecto en temas que sí conoce bien.",
+            exp: "La respuesta correcta es C. Si el modelo es preciso en temas bien entrenados pero alucina en temas desconocidos, demuestra que el problema es la falta de datos (blind spots), no un fallo en su capacidad de procesar."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A sociologist analyzed the shift in a nation's population distribution between rural and urban areas over the 20th century.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 180px; background-color:#71717a;'><span class='val' style='color:#71717a;'>85%</span><span>1900-Rural</span></div><div class='css-bar' style='height: 40px;'><span class='val'>15%</span><span>1900-Urban</span></div><div style='width:30px;'></div><div class='css-bar' style='height: 50px; background-color:#71717a;'><span class='val' style='color:#71717a;'>22%</span><span>2000-Rural</span></div><div class='css-bar' style='height: 165px;'><span class='val'>78%</span><span>2000-Urban</span></div></div><br>Based on the chart provided, which statement is most accurate?",
+            question: "Which statement is most accurate based on the chart?",
+            options: [
+                "A) The rural population in the year 2000 was larger than the urban population in 1900.",
+                "B) Between 1900 and 2000, the percentage of the population living in urban areas experienced a more than five-fold increase.",
+                "C) The urban population decreased significantly between the beginning and the end of the century.",
+                "D) In 1900, the urban population was exactly half the size of the rural population."
+            ],
+            correct: "B",
+            hint: "Mira la barra de 1900-Urban (15%) y la de 2000-Urban (78%). ¿Es 78 más de cinco veces 15?",
+            exp: "La respuesta correcta es B. La población urbana pasó del 15% al 78%. El quíntuple de 15 es 75 (15 * 5 = 75). Como 78 es mayor que 75, experimentó un aumento de más de cinco veces."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A cybersecurity firm released an annual report categorizing the initial attack vectors that successfully breached enterprise networks.<br><br>Phishing Campaigns: 65%<br>Malware/Ransomware: 20%<br>Insider Threats: 10%<br>Unpatched Software: 5%<br><br>The firm strongly advised companies to prioritize employee security awareness training over simply purchasing better antivirus software.",
+            question: "Which feature of the data most directly supports the firm's advice?",
+            options: [
+                "A) Malware accounts for exactly twice the amount of breaches as Insider Threats.",
+                "B) Phishing campaigns, which exploit human error rather than software flaws, account for more breaches than all other vectors combined.",
+                "C) Unpatched software is the least common attack vector, proving that IT departments are highly efficient.",
+                "D) The combined threat of Malware and Insider Threats equals 30%."
+            ],
+            correct: "B",
+            hint: "El consejo es priorizar entrenar a los empleados (humanos) en lugar de comprar antivirus. ¿Qué dato muestra que el factor humano es el mayor riesgo?",
+            exp: "La respuesta correcta es B. El Phishing (ataques de engaño a humanos) representa el 65%. Esto es mayor que la suma del resto (20+10+5 = 35%), justificando por qué entrenar a los empleados es la prioridad número uno."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "In astrobiology, researchers study extremophiles—organisms on Earth that thrive in incredibly hostile conditions. For instance, certain species of Archaea flourish in volcanic hot springs where temperatures regularly exceed 100°C (the boiling point of water) and pH levels are highly acidic. In standard biological organisms, such extreme heat and acidity would immediately denature proteins and unravel DNA. Because these extremophiles do not simply survive but actively multiply in these springs, it can be reasonably inferred that _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) they have evolved to completely abandon the use of proteins and DNA in their biological processes.",
+                "B) their cellular structures and molecular bonds possess a unique chemical stability that prevents denaturation under extreme heat and low pH.",
+                "C) they frequently migrate to cooler, less acidic waters in order to successfully reproduce.",
+                "D) volcanic hot springs on Earth are actually much cooler than scientists previously believed."
+            ],
+            correct: "B",
+            hint: "Si el calor destruye las proteínas normales, pero estos organismos viven y se multiplican en el calor hirviendo, sus proteínas y ADN deben ser estructuralmente diferentes y más fuertes.",
+            exp: "La respuesta correcta es B. La inferencia lógica es que, dado que no se destruyen, su biología a nivel molecular debe ser excepcionalmente estable y resistente a esas condiciones extremas."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "Predictive policing algorithms use historical crime data to forecast where future crimes are most likely to occur, directing police patrols to those specific 'hotspots.' However, historical arrest data is notoriously skewed; minority neighborhoods have historically experienced heavier police presence, leading to higher arrest rates for minor infractions simply due to increased surveillance, not necessarily higher crime rates. If a machine learning model is trained on this skewed historical data, the algorithm will likely _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) organically correct the historical bias and accurately deploy police to wealthy neighborhoods.",
+                "B) recommend the complete removal of police forces from all urban environments.",
+                "C) continuously direct police back to the same historically targeted neighborhoods, creating a self-reinforcing feedback loop of over-policing.",
+                "D) become entirely paralyzed and fail to produce any predictive maps."
+            ],
+            correct: "C",
+            hint: "Si le enseñas a la IA con datos que dicen 'los arrestos ocurren en el barrio X', la IA enviará a la policía al barrio X, donde harán más arrestos, retroalimentando a la IA.",
+            exp: "La respuesta correcta es C. Un modelo entrenado con datos sesgados perpetuará ese sesgo, enviando a la policía siempre al mismo lugar y creando un ciclo interminable (feedback loop)."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "Often referred to as the cradle of civilization, ancient Mesopotamia saw the invention of the wheel, mathematics, and the earliest known writing system ______ it was arguably the most technologically innovative region of the ancient world.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) system, it",
+                "B) system it",
+                "C) system; it",
+                "D) system,"
+            ],
+            correct: "C",
+            hint: "Tienes dos oraciones independientes. 'Mesopotamia saw the invention...' y 'it was arguably the most...'. Unirlas solo con una coma crea un error gramatical (comma splice).",
+            exp: "La respuesta correcta es C (system; it). El punto y coma se utiliza correctamente para separar dos cláusulas independientes fuertemente relacionadas."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "To build a robust artificial intelligence system, developers generally utilize three primary machine learning ______ Convolutional Neural Networks (CNNs), Recurrent Neural Networks (RNNs), and Generative Adversarial Networks (GANs).",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) architectures",
+                "B) architectures;",
+                "C) architectures,",
+                "D) architectures:"
+            ],
+            correct: "D",
+            hint: "La oración principal termina y se prepara para introducir una lista específica que define la frase anterior.",
+            exp: "La respuesta correcta es D (architectures:). Los dos puntos (colon) se utilizan en el inglés estándar al final de una cláusula independiente para introducir directamente una lista o explicación."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "Renowned physicist Marie ______ who remains the only person to win Nobel Prizes in two different scientific fields, conducted groundbreaking research on radioactivity that ultimately cost her her life.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) Curie",
+                "B) Curie,",
+                "C) Curie;",
+                "D) Curie:"
+            ],
+            correct: "B",
+            hint: "La cláusula que empieza con 'who remains...' es información adicional (no restrictiva). Necesita estar delimitada por comas.",
+            exp: "La respuesta correcta es B (Curie,). La coma es necesaria para abrir la cláusula relativa no restrictiva que describe a Marie Curie."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "By the time the final golden spike of the Transcontinental Railroad was driven into the ground at Promontory Summit in 1869, thousands of immigrant laborers ______ immense physical hardships blasted through the Sierra Nevada mountains.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) endure",
+                "B) will endure",
+                "C) had endured",
+                "D) are enduring"
+            ],
+            correct: "C",
+            hint: "Una acción en el pasado (sufrir dificultades) se completó ANTES de otra acción en el pasado (clavar el clavo dorado en 1869).",
+            exp: "La respuesta correcta es C (had endured). El 'past perfect' es obligatorio para mostrar que una acción pasada finalizó completamente antes de otro punto específico en el pasado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "The complex array of sophisticated sensors and highly specialized infrared cameras mounted on the new space telescope ______ crucial for detecting the faint light of ancient galaxies.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) are",
+                "B) is",
+                "C) were",
+                "D) have been"
+            ],
+            correct: "B",
+            hint: "Cuidado con los sujetos engañosos. El sujeto real de la oración no es 'sensors' ni 'cameras', es la palabra 'array'.",
+            exp: "La respuesta correcta es B (is). El sujeto principal es 'The complex array' (singular). Las frases preposicionales que le siguen no cambian la singularidad del sujeto, por lo que el verbo debe ser 'is'."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "To maintain the strict security protocols of the enterprise network, every aspiring software developer must submit ______ locally compiled code to a sandbox environment for vulnerability scanning prior to deployment.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) their",
+                "B) its",
+                "C) they're",
+                "D) there"
+            ],
+            correct: "A",
+            hint: "Se necesita un pronombre posesivo que se refiera a 'every aspiring software developer'. En inglés moderno, se usa la forma neutra.",
+            exp: "La respuesta correcta es A (their). 'Their' se utiliza como pronombre y adjetivo posesivo singular de género neutro, refiriéndose a una persona (el desarrollador)."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "Solar energy is an incredibly abundant and theoretically inexhaustible resource. _______, harnessing it as a baseline power grid solution requires the construction of massive, prohibitively expensive lithium-ion battery facilities to store electricity for nighttime use.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Furthermore",
+                "B) Consequently",
+                "C) Similarly",
+                "D) However"
+            ],
+            correct: "D",
+            hint: "La primera frase es extremadamente positiva (abundante). La segunda frase presenta un obstáculo gigante (requiere baterías prohibitivamente caras).",
+            exp: "La respuesta correcta es D (However). 'However' introduce un fuerte contraste o una salvedad crucial a la afirmación idealista de la oración anterior."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "At depths exceeding 4,000 meters, the ocean floor exerts a crushing hydrostatic pressure capable of imploding standard submarine hulls in milliseconds. _______, marine biologists wishing to study the abyssal zone must rely on unmanned, heavily armored titanium submersibles.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Consequently",
+                "B) Nevertheless",
+                "C) In contrast",
+                "D) For instance"
+            ],
+            correct: "A",
+            hint: "La presión aplasta submarinos normales (Causa). Los biólogos deben usar submarinos especiales de titanio (Efecto).",
+            exp: "La respuesta correcta es A (Consequently). Establece una relación directa de causa y efecto. Como consecuencia de la extrema presión, se requieren equipos especializados."
+        },
+        {
+            domain: "Expression of Ideas: Rhetorical Synthesis",
+            passage: "While writing a science article, a student took the following notes:<br>• The Hubble Space Telescope (launched 1990) observes primarily visible and ultraviolet light.<br>• Hubble has captured stunning images but cannot see through dense cosmic dust clouds.<br>• The James Webb Space Telescope (JWST) was launched in 2021.<br>• JWST is equipped with highly sensitive infrared detectors.<br>• Infrared light can pierce through cosmic dust, allowing JWST to observe the formation of the universe's earliest, most distant galaxies.",
+            question: "The student wants to emphasize the specific technological advantage JWST possesses over Hubble. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+            options: [
+                "A) Launched over thirty years after Hubble, the James Webb Space Telescope uses infrared detectors.",
+                "B) While Hubble provided stunning images using visible light, the newer James Webb Space Telescope was launched in 2021.",
+                "C) Because it detects infrared light, the James Webb Space Telescope can pierce cosmic dust to observe ancient, distant galaxies that Hubble cannot see.",
+                "D) Both the Hubble Space Telescope and the James Webb Space Telescope are used by astronomers to observe the universe."
+            ],
+            correct: "C",
+            hint: "Busca la opción que explique 'qué tecnología tiene Webb que Hubble no' y 'qué le permite hacer esa tecnología'.",
+            exp: "La respuesta correcta es C. Esta opción sintetiza perfectamente la ventaja tecnológica (detectar luz infrarroja) con el resultado superior (ver a través del polvo para observar galaxias antiguas que el Hubble no puede ver)."
+        }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+
+    function renderSlide(index) {
+        if (index >= questionsData.length) {
+            renderResults();
+            return;
+        }
+
+        const q = questionsData[index];
+        const container = document.getElementById('exam-root');
+        
+        container.innerHTML = `
+            <div class="top-bar">
+                <div class="module-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 8)</div>
+                <div class="timer"><i class="fa-regular fa-clock"></i> <span id="time-display">32:00</span></div>
+            </div>
+            <h2 class="slide-title">Question ${index + 1} <span class="q-domain">${q.domain}</span></h2>
+            
+            <div class="content-area">
+                <div class="two-column">
+                    <div class="passage-col">
+                        <p class="passage-text">${q.passage}</p>
+                        <p class="question-text">${q.question}</p>
+                    </div>
+                    <div class="options-col">
+                        <div class="radio-group" id="options-group">
+                            ${q.options.map((opt, i) => `
+                                <label class="radio-option">
+                                    <input type="radio" name="q${index}" value="${['A','B','C','D'][i]}">
+                                    ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn-small" onclick="document.getElementById('hint-box').style.display = 'block'">Ver Pista</button>
+                            <button class="btn-small" onclick="checkAnswer(${index})">Evaluar / Ver Explicación</button>
+                        </div>
+                        
+                        <div id="hint-box" class="hidden-box hint-box">
+                            <strong><i class="fa-solid fa-lightbulb"></i> Pista:</strong> ${q.hint}
+                        </div>
+                        <div id="exp-box" class="hidden-box exp-box">
+                            <strong>Explicación:</strong> ${q.exp}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-bar">
+                <button class="nav-btn secondary" onclick="prevQ()" ${index === 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>Anterior</button>
+                <button class="nav-btn ${index === questionsData.length - 1 ? 'submit' : ''}" onclick="nextQ()">
+                    ${index === questionsData.length - 1 ? 'Finalizar Examen' : 'Siguiente'}
+                </button>
+            </div>
+        `;
+    }
+
+    function checkAnswer(index) {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const expBox = document.getElementById('exp-box');
+        expBox.style.display = 'block';
+        
+        if (!selected) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation" style="color:#ffc107;"></i> No seleccionaste respuesta.</strong> <br><br> ${questionsData[index].exp}`;
+            return;
+        }
+
+        if (selected.value === questionsData[index].correct) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-check" style="color:#11caa0;"></i> ¡Correcto!</strong> <br><br> ${questionsData[index].exp}`;
+        } else {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Incorrecto.</strong> Elegiste la ${selected.value}. <br><br> ${questionsData[index].exp}`;
+        }
+    }
+
+    function nextQ() {
+        if (currentQ < questionsData.length - 1) {
+            currentQ++;
+            renderSlide(currentQ);
+        } else {
+            renderResults();
+        }
+    }
+
+    function prevQ() {
+        if (currentQ > 0) {
+            currentQ--;
+            renderSlide(currentQ);
+        }
+    }
+
+    function startExam() {
+        document.getElementById('slide-welcome').classList.remove('active-slide');
+        document.getElementById('exam-root').classList.add('active-slide');
+        renderSlide(0);
+        startTimer();
+    }
+
+    function renderResults() {
+        document.getElementById('exam-root').classList.remove('active-slide');
+        document.getElementById('slide-results').classList.add('active-slide');
+        clearInterval(timerInterval);
+    }
+
+    let timerInterval;
+    let timeLeft = 32 * 60; // 32 minutes
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            let display = document.getElementById('time-display');
+            if(display) display.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+            if (timeLeft <= 0) { clearInterval(timerInterval); renderResults(); }
+        }, 1000);
+    }
+
+</script>
+
+<!-- Welcome Slide -->
+<div class="slide-container active-slide full-bg-image" id="slide-welcome" style="background-image: url('https://placehold.co/1280x720/003d68/ffffff?text=Advanced+SAT+Simulator+Vol.+8');">
+    <div class="overlay">
+        <h1>SAT Simulator<br>Vol. 8 (Advanced / 27 Qs)</h1>
+        <p>Hard Difficulty & Multidisciplinary. This module contains 27 BRAND NEW, rigorous questions covering Natural Science, History, Social Science, Anthropology, and Complex Computer Science architectures. You have 32 minutes.</p>
+        <div>
+            <button class="nav-btn submit" style="font-size: 24px; padding: 15px 40px;" onclick="startExam()">Comenzar Examen <i class="fa-solid fa-play" style="margin-left:10px;"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Exam Root -->
+<div class="slide-container" id="exam-root">
+    <!-- Populated by JS -->
+</div>
+
+<!-- Results Slide -->
+<div class="slide-container full-bg-image" id="slide-results" style="background-image: url('https://placehold.co/1280x720/0f5223/ffffff?text=Module+Completed');">
+    <div class="overlay">
+        <h1 style="font-size: 60px;"><i class="fa-solid fa-flag-checkered"></i> Examen Finalizado</h1>
+        <p style="font-size: 20px;">Has completado las 27 preguntas del simulador Vol. 8 (Nivel Avanzado).</p>
+        <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.3); max-width: 600px;">
+            <h3 style="color:#11caa0; margin-bottom: 10px;">Autoevaluación Avanzada</h3>
+            <p style="font-size: 16px;">¡Excelente trabajo! Este simulador ha puesto a prueba tu capacidad de deducción lógica y comprensión de vocabulario técnico en inglés. Analiza bien los distractores en los que hayas caído, ya que son idénticos a los del "Hard Module" del SAT real.</p>
+        </div>
+        <div>
+            <button class="nav-btn" onclick="location.reload()"><i class="fa-solid fa-rotate-right" style="margin-right:10px;"></i> Repetir Simulador</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

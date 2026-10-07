@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEFL 2026 - Official Simulator (Volume 9)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .tab-active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .subtab-active { background-color: #e5e7eb; border-left: 4px solid #2563eb; font-weight: 600; }
+        .overtime { color: #dc2626; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .feedback-correct { background-color: #dcfce7; border-left: 4px solid #22c55e; padding: 10px; margin-top: 10px; border-radius: 4px;}
+        .feedback-incorrect { background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 10px; margin-top: 10px; border-radius: 4px;}
+        .word-chip { cursor: grab; user-select: none; }
+        .word-chip:active { cursor: grabbing; }
+        .drop-zone { min-height: 50px; border: 2px dashed #cbd5e1; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-800">
+
+    <header class="bg-white shadow-sm z-10">
+        <a id="boton-inicio" href="/">🏠︎</a>
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+            <div class="flex items-center gap-2 text-xl font-bold text-blue-700">
+                <i class="fa-solid fa-graduation-cap"></i> TOEFL 2026 Simulator - Vol. 9
+            </div>
+            <nav class="flex h-full">
+                <button onclick="changeSection('reading')" id="nav-reading" class="px-6 h-full hover:bg-gray-50 flex items-center tab-active">Reading</button>
+                <button onclick="changeSection('listening')" id="nav-listening" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500">Listening</button>
+                <button onclick="changeSection('speaking')" id="nav-speaking" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500">Speaking</button>
+                <button onclick="changeSection('writing')" id="nav-writing" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500">Writing</button>
+                <button onclick="changeSection('results')" id="nav-results" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500"><i class="fa-solid fa-chart-bar mr-2"></i>Results</button>
+            </nav>
+            <div class="flex items-center gap-4">
+                <div id="global-timer" class="text-lg font-mono bg-gray-100 px-3 py-1 rounded border border-gray-300">00:00</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col overflow-y-auto z-0 shadow-inner" id="sidebar"></aside>
+        <main class="flex-1 bg-gray-50 p-8 overflow-y-auto relative" id="main-content">
+            <div class="text-center text-gray-500 mt-20">Loading simulator...</div>
+        </main>
+    </div>
+
+<script>
+    const examData = {
+        reading: {
+            title: "Reading Section",
+            modules: [
+                {
+                    id: "m1", title: "Module 1",
+                    tasks: [
+                        {
+                            id: "m1_t1", type: "complete_words", title: "Task 1: Complete the Words (Mycology)",
+                            text: "Fungi play a crucial role in breakdown mechanics within woodland floor ecosystems. A recent exper<input type='text' id='cw_1' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='5'> (1) monitored how mycorrhizal networks share vital nutrients. This discov<input type='text' id='cw_2' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='3'> (2) confirmed that symbio<input type='text' id='cw_3' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='3'> (3) roots swap carbon for mineral phosphorus elements. Biologists are analyzing gen<input type='text' id='cw_4' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='4'> (4) markers to map the subterranean mycelium boundaries. Manipulating these structural charact<input type='text' id='cw_5' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='7'> (5) could maximize forestry health outcomes. Such interventions heavily boost tree produc<input type='text' id='cw_6' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='5'> (6) indexes.",
+                            answers: ["iment", "ery", "tic", "etic", "eristics", "tivity"],
+                            hints: ["A systematic scientific test or structural trial", "The act of finding or learning something new", "Relating to a mutually beneficial biological link", "Pertaining to genetics or biological heredity markers", "Distinguishing qualities or traits of an organism", "The state or quality of being yield-efficient or fertile"],
+                            explanations: [
+                                "exper-iment: Experimento, un estudio empírico sistemático.",
+                                "discov-ery: Descubrimiento, el acto de registrar un nuevo hallazgo.",
+                                "symbio-tic: Simbiótico, relativo a relaciones biológicas de beneficio mutuo.",
+                                "gen-etic: Genético, concerniente al genoma o marcadores hereditarios.",
+                                "charact-eristics: Características, los rasgos distintivos analizados.",
+                                "produc-tivity: Productividad, el índice de rendimiento de un ecosistema."
+                            ]
+                        },
+                        {
+                            id: "m1_t2", type: "daily_life", title: "Task 2: Read in Daily Life",
+                            subtasks: [
+                                {
+                                    title: "1. Campus News",
+                                    passage: "<strong>Campus Bookstore Loyalty Program Overhaul</strong><br><br>Starting next Monday at 8:00 AM, the student bookstore will transition its point matrix to the new 'CardPoints' mobile software. Under this update, accumulated balances must be synced via the student dashboard or validated at the checkout service desk within two weeks. Points can be exchanged for textbook vouchers or digital lab portal passes.",
+                                    questions: [
+                                        { q: "What modification is the campus bookstore enacting next Monday?", opts: ["Closing down the service desk for renovations", "Transitioning its point matrix to new mobile software", "Banning physical textbook sales completely", "Offering free clothing items to all seniors"], correct: 1, hint: "Look at the phrase 'transition its point matrix to...'.", exp: "El texto señala expresamente que se cambiará el sistema de puntos a un nuevo software móvil." },
+                                        { q: "What assets can points be exchanged for under the new system?", opts: ["Cash refunds or parking clearance stickers", "Textbook vouchers or digital lab portal passes", "Free cafeteria meals or gym lockers", "Public rail travel discounts"], correct: 1, hint: "Check the final sentence of the text.", exp: "Los puntos acumulados podrán ser canjeados por vales de libros o pases para portales de laboratorio." }
+                                    ]
+                                },
+                                {
+                                    title: "2. Social Media Post",
+                                    passage: "<strong>@UniStudentUnion:</strong> Stressed about your presentation slides? 📊 Don't panic! The Design Lab is hosting a peer review clinic this Thursday at the Library Media Annex from 4:00 PM to 7:00 PM. Bring your laptop and your rough project draft. Complimentary flash drives will be handed out to the first 50 arrivals! Present your barcode at the door for entry. 💻✨ #AcademicSuccess #DesignLab",
+                                    questions: [
+                                        { q: "What specific clinic is being advertised in the social post?", opts: ["A laboratory report writing tutorial", "A peer review clinic for presentation slides", "A computer repair diagnostic session", "An introductory web coding group"], correct: 1, hint: "Look at the event description right after 'Don't panic!'.", exp: "Se anuncia una clínica de revisión entre pares enfocada en diapositivas de presentación." },
+                                        { q: "What item must students bring along with them to the annex?", opts: ["A valid medical certificate sheet", "Their laptop and rough project draft", "A printed copy of their syllabus sheet", "A standardized textbook bundle"], correct: 1, hint: "Look for the sentence starting with 'Bring...'.", exp: "Se requiere que los estudiantes asistan con su computadora portátil y el borrador de su proyecto." },
+                                        { q: "Who is eligible to receive a complimentary flash drive?", opts: ["Only senior engineering students", "The first 50 arrivals at the annex room", "Anyone who registers on Canvas beforehand", "Students who complete the feedback survey"], correct: 1, hint: "Look for the phrase 'handed out to the...'.", exp: "Las unidades de memoria USB gratuitas se reservan estrictamente para los primeros 50 en llegar." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "m1_t3", type: "academic", title: "Task 3: Read an Academic Passage",
+                            passage: "<strong>The Priming Effect in Cognitive Psychology</strong><br><br>In the domain of cognitive psychology, the priming effect represents an implicit memory phenomenon where exposure to a specific stimulus influences an individual's subsequent response to a later stimulus, completely operating beneath conscious awareness. For instance, if a subject is exposed to the word 'yellow' prior to a word-completion task, their brain processes the word 'banana' significantly faster than the word 'bicycle'. This cognitive acceleration occurs because the initial priming stimulus activates a localized node within the mind's semantic network, spreading activation to closely associated concepts and temporarily lowering the cognitive threshold required to retrieve those linked memories.<br><br>Psychologists categorize this phenomenon into several distinct typologies, most notably conceptual and perceptual priming. Conceptual priming relies heavily on the semantic meaning of the stimuli, anchored by associative networks; priming the mind with 'doctor' accelerates responses to 'nurse' because both concepts share proximity within the same contextual category. Perceptual priming, conversely, is triggered by the structural configuration or physical form of the stimulus, where seeing a specific font pattern enhances subsequent recognition of words presented in that identical visual style. The robust replication of priming across experimental frameworks has provided crucial insights into the brain's subconscious filing systems, demonstrating that human choices and processing speeds are constantly mediated by subtle environmental cues that evade conscious detection.",
+                            questions: [
+                                { q: "How is the priming effect defined in the passage?", opts: ["A conscious strategy to memorize numbers", "An implicit memory phenomenon affecting subsequent responses", "The loss of short-term semantic data due to stress", "An architectural model tracking eye movements"], correct: 1, hint: "Look at the definition in the first sentence.", exp: "Es un fenómeno de memoria implícita donde la exposición a un estímulo influye inconscientemente en las respuestas posteriores." },
+                                { q: "Why does exposure to 'yellow' accelerate the retrieval of 'banana'?", opts: ["It activates a localized node that spreads semantic activation.", "It forces the brain to perform mathematical calculations.", "It creates a visual distortion inside the eye structure.", "It triggers a conscious preference for sweet food items."], correct: 0, hint: "Read the explanation about network nodes in the first paragraph.", exp: "Ocurre porque el estímulo inicial activa un nodo semántico local que propaga la activación a conceptos vinculados." },
+                                { q: "What defines conceptual priming according to the text?", opts: ["It is triggered by the font style or physical configuration.", "It relies heavily on the semantic meaning of the stimuli.", "It requires a paid digital access token code.", "It only occurs during late-night sleep cycles."], correct: 1, hint: "Look at the start of the second paragraph.", exp: "El cebado conceptual se basa principalmente en el significado semántico y la asociación lógica entre los conceptos." },
+                                { q: "How does perceptual priming differ from conceptual priming?", opts: ["It completely avoids using the human brain matrix.", "It is triggered by the structural or physical form of the stimulus.", "It is much more expensive to measure inside labs.", "It targets long-term autobiographical life facts."], correct: 1, hint: "Read the clause containing 'Perceptual priming, conversely...'.", exp: "El cebado perceptivo se activa por la configuración estructural o forma física del estímulo (como la tipografía)." },
+                                { q: "Based on the passage, the word 'robust' is closest in meaning to:", opts: ["Fragile and experimental", "Strong, consistent, and well-supported", "Vague and scientifically questionable", "Declining rapidly over generations"], correct: 1, hint: "Think about how it describes the replication of the effect.", exp: "'Robust' denota algo fuerte, consistente y con un sólido respaldo experimental en los marcos científicos." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "m2", title: "Module 2 (Advanced)",
+                    tasks: [
+                        {
+                            id: "m2_t1", type: "daily_life", title: "Task 1: Read in Daily Life",
+                            subtasks: [
+                                {
+                                    title: "1. Short Email",
+                                    passage: "<strong>To:</strong> All Residence Hall Students<br><strong>From:</strong> Central Security Office<br><strong>Date:</strong> November 14<br><strong>Subject:</strong> Smart Lock Firmware Calibration<br><br>Please be advised that infrastructure technicians will access all entry doors in West Complex tomorrow between 9:00 AM and 1:00 PM to perform a mandatory smart lock firmware calibration. During this maintenance window, keycard reader sensors will cycle off intermittently for 60 seconds per unit. Ensure your suite entrance door is cleared of physical decorations beforehand. Your presence inside is not required.",
+                                    questions: [
+                                        { q: "What technical task is scheduled for tomorrow morning in West Complex?", opts: ["Replacing fire extinguisher cylinders", "A mandatory smart lock firmware calibration", "An upgrade to the overhead light ballasts", "A manual cleaning of window frame fixtures"], correct: 1, hint: "Look at the subject line and first sentence.", exp: "Se ejecutará una calibración obligatoria del firmware de las cerraduras inteligentes de los accesos." },
+                                        { q: "What precaution must students take regarding their suite doors?", opts: ["Clear them of all physical decorations beforehand.", "Stay inside to lock the deadbolt manually.", "Purchase a digital backup verification keycard.", "Leave the door wide open for the technicians."], correct: 0, hint: "Look for the sentence starting with 'Ensure...'.", exp: "Se solicita retirar cualquier decoración física de las puertas para no entorpecer los lectores." }
+                                    ]
+                                },
+                                {
+                                    title: "2. Long Email",
+                                    passage: "<strong>To:</strong> Economics 301 Cohort<br><strong>From:</strong> Dr. Julian Vance<br><strong>Date:</strong> October 12<br><strong>Subject:</strong> Streamlined Case Study Submission Parameters<br><br>Dear Research Cohort, following yesterday's departmental policy update concerning academic paper logistics, I have streamlined the submission criteria for your term case studies due on November 15th. Originally, the grading framework required you to submit an electronic draft via email and a duplicate bound hardcopy folder to my physical office mailbox. <br><br>To fulfill our division's new green office metrics, the hardcopy folder requirement has been completely waived. Instead, you must upload your complete case analysis as a single secure PDF file via the Canvas assignment dashboard. Furthermore, your raw statistical correlation data sheets must be compiled as a numbered appendix embedded directly within that PDF document, rather than being attached as a separate spreadsheet file spreadsheet. Please be reminded that late uploads will trigger an automatic deduction of 10% of the maximum score per day, and exceptions will only be cleared through the dean's official medical clearance path.",
+                                    questions: [
+                                        { q: "Which original requirement has been waived by the professor?", opts: ["The compilation of statistical correlation data", "The submission of a physical bound hardcopy folder", "The secure PDF file formatting step", "The submission deadline on November 15th"], correct: 1, hint: "Look for the sentence following 'green office metrics'.", exp: "Se ha eliminado definitivamente la obligación de entregar una carpeta física impresa y encuadernada." },
+                                        { q: "How must statistical correlation data sheets be delivered under the new parameters?", opts: ["As an attached standalone spreadsheet file spreadsheet", "Embedded directly within the main PDF file as a numbered appendix", "Printed out on green ledger charts for the assistant", "Sent via a separate link to the state database"], correct: 1, hint: "Read the phrase starting with 'rather than being attached as...'.", exp: "Los datos correlacionales deben ir integrados en el cuerpo del archivo PDF principal a modo de apéndice numerado." },
+                                        { q: "What is the penalty rule applied to late assignment uploads?", opts: ["The file is rejected automatically by Canvas.", "An automatic grade deduction of 10% per day.", "Students must select a new case study topic.", "Portal login access rights are suspended."], correct: 1, hint: "Look at the final sentence for numerical mark drop criteria.", exp: "Las entregas atrasadas sufren un descuento automático del 10% sobre la nota máxima por cada día de demora." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "m2_t2", type: "academic", title: "Task 2: Academic Passage",
+                            passage: "<strong>The Milankovitch Cycles and Paleoclimate</strong><br><br>The field of paleoclimatology underwent a profound transformation with the mathematical validation of the Milankovitch cycles, a conceptual model detailing how cyclical variations in Earth's orbital parameters govern long-term planetary climate patterns. Named after Serbian astrophysicist Milutin Milankovitch, this theory isolates three distinct astronomical variations that dictate the geographical distribution and seasonality of incident solar radiation: eccentricity, obliquity, and precession. These orbital oscillations operate over vast timescales, driving the planet into and out of prolonged glacial epochs.<br><br>Eccentricity measures the geometric shape of Earth's orbit around the sun, fluctuating from a near-perfect circle to a mild ellipse over a cycle of roughly 100,000 years. When eccentricity is high, the variation in solar energy received at the closest and farthest orbital points increases, accentuating seasonal extremes. Obliquity, conversely, represents the tilt angle of Earth's rotational axis, which oscillates between 22.1 and 24.5 degrees over a 41,000-year cycle. A higher tilt amplifies seasonal contrasts, delivering warmer summers and harsher winters to both polar sectors. Finally, precession accounts for the axial wobble of the planet, a 26,000-year cycle that shifts the seasonal timing of closest orbital approach. Quantitative ice core models prove that while these astronomical variations do not alter the absolute total of solar energy reaching Earth annually, they redistribute that thermal energy across latitudes, pushing subpolar ecosystems past critical thermodynamic thresholds and triggering self-sustaining glacial expansions.",
+                            questions: [
+                                { q: "What do the Milankovitch cycles model?", opts: ["The speed of solar wind particles inside ocean layers", "How variations in Earth's orbital parameters govern climate patterns", "The sudden reversal of global magnetic poles", "The volcanic history of subpolar mountain ranges"], correct: 1, hint: "Look at the definition in the first sentence.", exp: "Modelan cómo las variaciones cíclicas de los parámetros orbitales terrestres dirigen los patrones climáticos a largo plazo." },
+                                { q: "What astronomical variation measures the geometric shape of Earth's orbit?", opts: ["Obliquity", "Precession", "Eccentricity", "Albedo feedback"], correct: 2, hint: "Read the opening sentence of the second paragraph.", exp: "La excentricidad mide la forma de la órbita de la Tierra, variando de circular a elíptica." },
+                                { q: "How long is the cyclical oscillation period of Earth's obliquity?", opts: ["Roughly 100,000 years", "Approximately 41,000 years", "Exactly 26,000 years", "More than ten million years"], correct: 1, hint: "Check the exact duration metric given for tilt angle changes.", exp: "El ciclo de la oblicuidad (el cambio en la inclinación del eje) dura aproximadamente 41,000 años." },
+                                { q: "What physical effect is directly caused by precession?", opts: ["The absolute reduction of solar radiation outputs", "A shift in the seasonal timing of closest orbital approach", "The rapid melting of tectonic mantle rock layers", "An increase in heavy calcium carbonate shell weights"], correct: 1, hint: "Read the sentence describing the axial wobble.", exp: "La precesión modifica el momento estacional en el que la Tierra se encuentra más cerca del sol." },
+                                { q: "According to ice core models, what is the primary effect of these orbital cycles?", opts: ["They reduce the total global solar energy received annually.", "They redistribute thermal energy across latitudes.", "They eliminate all subpolar thermodynamic thresholds.", "They stabilize global current distributions permanently."], correct: 1, hint: "Read the final sentence of the text carefully.", exp: "No alteran la energía total absoluta que llega al planeta, sino que la redistribuyen geográficamente, activando umbrales climáticos." }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        listening: {
+            title: "Listening Section",
+            modules: [
+                {
+                    id: "m1", title: "Module 1",
+                    tasks: [
+                        {
+                            id: "l_m1_t1", type: "listen_choose", title: "Task 1: Listen and Choose a Response",
+                            instructions: "Listen to 8 short phrases from daily life and select the best response.",
+                            items: [
+                                { audio: { text: "Pardon me, do you know if the biology laboratory accepts digital student profiles for entry clearance?", speaker: "man" }, opts: ["Biology tracks living cell matrices.", "Yes, just tap your phone at the reader slot near the frame.", "I already bought my white lab coat folder.", "No, I am looking for the math hall."], correct: 1, exp: "Responde de forma directa sobre el método de acceso digital permitido." },
+                                { audio: { text: "I can't get my database login credentials to execute. It keeps loop signaling a server error.", speaker: "woman" }, opts: ["Databases catalog large collections of research files.", "Did you verify your token on the campus IT status page?", "I prefer reading printed journals in the library lounge.", "The computing platform is housed in the annex basement."], correct: 1, exp: "Ofrece un paso lógico de verificación técnica ante una falla de acceso." },
+                                { audio: { text: "Could you direct me to the advanced genomics pavilion from this corridor?", speaker: "man" }, opts: ["The pavilion features high-efficiency ventilation equipment.", "Go straight down this path and cross the glass bridge on your left.", "I usually study inside the library study pods.", "Yes, genomic mapping is an advanced science discipline."], correct: 1, exp: "Aporta indicaciones de orientación físicas exactas y claras para guiar al estudiante." },
+                                { audio: { text: "I accidentally spilled my green tea all over my chemistry data sheets!", speaker: "woman" }, opts: ["Tea extracts contain organic antioxidant molecules.", "Lay them flat under the fume hood exhaust fan to dry them quickly.", "Data sheets use standard numerical rows.", "I bought a metal flask at the bookstore yesterday."], correct: 1, exp: "Sugiere una medida de emergencia práctica para secar los registros del laboratorio." },
+                                { audio: { text: "Are you attending the panel briefing on quantum encryption security metrics tonight?", speaker: "man" }, opts: ["Quantum forces operate at subatomic scale systems.", "I plan to, right after my biochemistry practical session concludes.", "The panel has invited four industry software developers.", "Yes, security protocols are strict inside server clusters."], correct: 1, exp: "Expresa confirmación de asistencia coordinada con su horario de prácticas." },
+                                { audio: { text: "Do you happen to have a spare scientific calculator I could borrow for the quiz?", speaker: "woman" }, opts: ["Calculators process complex logarithmic strings.", "Sure, there is a backup one inside my locker drawer. Help yourself.", "I find long calculations tedious to complete manually.", "No, my grade was uploaded to Canvas an hour ago."], correct: 1, exp: "Accede con cortesía al préstamo indicando la ubicación del objeto." },
+                                { audio: { text: "I am incredibly nervous about delivering my oral presentation before the evaluation board.", speaker: "man" }, opts: ["Evaluation boards grade student baseline competencies.", "You'll do great! Your data visualization charts are completely solid.", "The presentation room has a blue carpet floor.", "I am nervous about my financial balance too."], correct: 1, exp: "Brinda refuerzo positivo validando la calidad del trabajo del alumno." },
+                                { audio: { text: "Does this commuter rail pass cover transit lines during the weekend frames?", speaker: "woman" }, opts: ["Rail networks provide efficient public transportation services.", "No, it strictly covers Monday through Friday commuter slots.", "I enjoy visiting mountain trails during the summer break.", "Yes, passes are generated at the ticket station counter."], correct: 1, exp: "Aclara de forma directa los límites de validez temporal del abono." }
+                            ]
+                        },
+                        {
+                            id: "l_m1_t2", type: "listen_announcement", title: "Task 2: Announcement",
+                            instructions: "Listen to the campus announcement (approx. 50 words).",
+                            audio: { text: "Attention biochemistry undergraduates. Due to an urgent water valve repair in Lab Complex B, tomorrow's enzyme extraction practical session is relocated to the analytical chemistry hall on the second floor. Lab coat requirements and safety protocols remain identical. Please report at 10:00 AM sharp.", speaker: "woman" },
+                            questions: [
+                                { q: "Why was the biochemistry laboratory session relocated?", opts: ["Due to a chemical inventory audit sweep", "Because of an urgent water valve repair", "The research assistant was reported absent", "A scheduling conflict occurred on Canvas"], correct: 1, hint: "Listen for the water pipe infrastructure issue.", exp: "La reubicación fue causada por la reparación urgente de una válvula de agua ('water valve repair')." },
+                                { q: "Where will the rescheduled practical session take place?", opts: ["In the basement chemical storage unit", "In the analytical chemistry hall on the second floor", "Inside the library main study lounge", "At the Student Union conference center"], correct: 1, hint: "Listen for the subject hall name and floor level.", exp: "Se desarrollará en la sala de química analítica, ubicada en la segunda planta." }
+                            ]
+                        },
+                        {
+                            id: "l_m1_t3", type: "listen_convo", title: "Task 3: Conversations",
+                            instructions: "Listen to two casual campus conversations.",
+                            subtasks: [
+                                {
+                                    title: "Conversation 1",
+                                    audio: [
+                                        { speaker: "man", text: "Hey Emma, are you paying for the physical reference handbook bundle for our economics module?" },
+                                        { speaker: "woman", text: "No way, it costs over one hundred and eighty dollars. The syllabus mentions that the open-access digital files are fully sufficient." },
+                                        { speaker: "man", text: "Really? I thought the online adaptive homework portal required a paid validation code included in that bundle." },
+                                        { speaker: "woman", text: "They updated the interface over the summer, so now the homework platform is free and hosted entirely on Canvas." }
+                                    ],
+                                    questions: [
+                                        { q: "Why is Emma refraining from purchasing the physical handbook bundle?", opts: ["She intends to drop the economics module.", "It costs over one hundred and eighty dollars.", "She has already acquired a previous version.", "The student bookstore ran out of copies."], correct: 1, hint: "Listen to her price objection statement.", exp: "Evita comprar el paquete físico debido a su elevado precio superior a 180 dólares." },
+                                        { q: "What modification occurred regarding the homework platform this semester?", opts: ["It demands a separate validation fee code.", "It transitioned to a free platform hosted on Canvas.", "It was completely eliminated from grading.", "It must be printed and filed manually."], correct: 1, hint: "Listen to the final turn of the dialogue text.", exp: "La plataforma de tareas pasó a ser un servicio gratuito integrado en Canvas." }
+                                    ]
+                                },
+                                {
+                                    title: "Conversation 2",
+                                    audio: [
+                                        { speaker: "woman", text: "Excuse me, I'm trying to hand in my work-study application folder, but the employment desk is vacant." },
+                                        { speaker: "man", text: "Ah, the coordinators are conducting a safety briefing session in the conference room next door. They'll reopen at 1:30 PM." },
+                                        { speaker: "woman", text: "That's problematic. The registration portal locks submissions at 2:00 PM today, so I'm on a tight timeline." },
+                                        { speaker: "man", text: "Don't panic. You can just slide your folder packet into the secure locked drop-box on the wall; they process those hourly." }
+                                    ],
+                                    questions: [
+                                        { q: "Why is the employment desk currently vacant?", opts: ["The office closed early for a local holiday.", "Staff are conducting a safety briefing session.", "The portal handles all documents digitally now.", "The clerks are out on an extended lunch break."], correct: 1, hint: "Listen to where the man says the staff went.", exp: "El personal está ausente temporalmente por asistir a una sesión informativa de seguridad ('safety briefing session')." },
+                                        { q: "What alternative delivery path does the man suggest?", opts: ["Mailing the folder via campus postal lines", "Using the secure locked drop-box on the wall", "Returning to the desk next Monday morning", "Emailing a digital photo of the paperwork"], correct: 1, hint: "Look for the container option mounted on the wall.", exp: "Sugiere depositar los papeles en el buzón de seguridad cerrado de la pared." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "l_m1_t4", type: "listen_talk", title: "Task 4: Academic Talk",
+                            instructions: "Listen to a mini-lecture from a professor.",
+                            audio: { text: "Good afternoon. Today we are investigating an organic innovation in nanotechnology: targeted drug delivery systems utilizing synthetic liposomes. What is the topic of the talk? It is how engineered lipid vesicles can transport medication straight to diseased cells without harming healthy tissue. Traditionally, systemic therapies like standard chemotherapy circulate freely through the patient's entire bloodstream. While highly effective at killing cancer cells, they also destroy healthy cells, causing severe systemic side effects. Liposomes, conversely, act as microscopic cloaking devices. These spherical vesicles are synthesized from a phospholipid bilayer identical to human cell membranes, giving them excellent biocompatibility. Engineers embed specific target antibodies onto the outer surface of the liposome. These antibodies operate like keys, binding exclusively to corresponding protein receptors present on tumor cells. Once attached, the tumor cell absorbs the liposome via endocytosis, releasing the enclosed medication directly inside the target zone. This nanotech application maximizes therapeutic efficiency while drastically minimizing side effects.", speaker: "man" },
+                            questions: [
+                                { q: "What is the main topic of the talk?", opts: ["The history of manufacturing chemical dyes", "Targeted drug delivery using synthetic liposomes", "The reproductive cycle of phospholipid cells", "Methods for reducing radiation inside labs"], correct: 1, hint: "Listen for the core nanotech application defined early on.", exp: "La lección se centra en los sistemas dirigidos de administración de fármacos mediante el uso de liposomas sintéticos." },
+                                { q: "What major disadvantage characterizes traditional systemic therapies according to the professor?", opts: ["They are too complex to synthesize inside labs.", "They destroy healthy cells alongside diseased ones.", "They break down instantly inside the stomach matrix.", "They require expensive gold protective vaults."], correct: 1, hint: "Listen to the critique of standard chemotherapy.", exp: "Las terapias sistémicas tradicionales carecen de selección, destruyendo células sanas y provocando efectos secundarios." },
+                                { q: "Why do synthetic liposomes possess excellent biological biocompatibility?", opts: ["They are frozen into solid stone formations.", "They feature a phospholipid bilayer identical to cell membranes.", "They are composed of pure heavy metal cadmium atoms.", "They emit high-energy ultraviolet wave signatures."], correct: 1, hint: "Listen for the term describing their molecular shell.", exp: "Tienen una excelente biocompatibilidad porque su bicapa fosfolipídica es idéntica a las membranas celulares humanas." },
+                                { q: "How do liposomes target specific diseased cells exclusively?", opts: ["By heating up the entire local blood matrix", "Via surface antibodies that bind to tumor protein receptors", "They move randomly until they strike a barrier", "They are guided manually using miniature magnets"], correct: 1, hint: "Listen to the explanation about antibodies operating like keys.", exp: "Utilizan anticuerpos en su superficie que se acoplan únicamente con los receptores de proteínas de las células tumorales." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "m2", title: "Module 2 (Advanced)",
+                    tasks: [
+                        {
+                            id: "l_m2_t1", type: "listen_choose", title: "Task 1: Listen and Choose a Response",
+                            instructions: "Listen to 8 more complex daily phrases.",
+                            items: [
+                                { audio: { text: "The housing administration rejected my accommodation request because my medical log lacked an official institutional seal.", speaker: "woman" }, opts: ["Dormitories provide shared residential spaces.", "You must obtain a verified stamp from the campus clinic and resubmit it.", "The housing desk is located inside the union pavilion.", "I mislaid my financial assistance file folder yesterday afternoon."], correct: 1, exp: "Aporta la solución de trámite exacta para corregir la falta de sello institucional." },
+                                { audio: { text: "Are you uploading your paleoclimate correlation data graphs as an embedded appendix or an external spreadsheet file?", speaker: "man" }, opts: ["Paleoclimatology tracks historical planet climate cycles.", "I am compiling them within the appendix section to maintain file integrity.", "Spreadsheets require cell grid calculation strings.", "The tracking data was sampled at the subpolar glacier field."], correct: 1, exp: "Elige la opción que respeta el criterio de entrega consolidada del informe." },
+                                { audio: { text: "I can't access the advanced physics modeling nodes from my off-campus residence network router.", speaker: "woman" }, opts: ["Simulation nodes analyze subatomic velocity vectors.", "Ensure you run the university secure VPN token before logging in.", "My apartment router has an excellent fiber line.", "The computing clusters run fine inside the science complex hall."], correct: 1, exp: "Propone el uso de la VPN universitaria como solución de conectividad remota indispensable." },
+                                { audio: { text: "Professor Carter's evaluative remarks are incredibly direct, he cut my framework score by 15 marks.", speaker: "man" }, opts: ["He has been a member of faculty since 2014.", "Don't discard your outline. Book an office hour slot to fix his core points.", "Outlines consume an hour to structure correctly.", "The economics exam covers global trade market trends."], correct: 1, exp: "Ofrece un consejo constructivo y equilibrado para afrontar una corrección rigurosa." },
+                                { audio: { text: "Did you manage to secure a research locker pass for the chemistry annex hall?", speaker: "woman" }, opts: ["Lockers secure expensive quartz glassware units.", "No, they were completely allocated within ten minutes, so I missed out.", "The pass is activated at the administrative desk counter.", "Annex halls require biometric identity clearance steps."], correct: 1, exp: "Responde de forma negativa detallando el rápido agotamiento de la reserva." },
+                                { audio: { text: "I accidentally corrupted my final statistical script right before entering the panel evaluation matrix room.", speaker: "man" }, opts: ["Scripts use advanced object coding languages.", "Restore the previous version from your cloud storage history log tab.", "Evaluations demand a clear data display on screen.", "The coding process took two days to complete correctly."], correct: 1, exp: "Indica una opción de recuperación viable a través del historial de copias en la nube." },
+                                { audio: { text: "We are coordinating a volunteer cleanup sweep for the wetland habitat this Saturday morning. Joining?", speaker: "woman" }, opts: ["Wetlands host diverse migratory bird species.", "Count me in. Text me the assembly coordinates and tool requirements.", "Volunteering adds great merit to academic portfolios.", "Saturday mornings are typically quiet times for resting."], correct: 1, exp: "Acepta la propuesta de voluntariado y solicita los detalles logísticos correspondientes." },
+                                { audio: { text: "Is the graduate research panel taking place inside the student pavilion or the engineering theater?", speaker: "man" }, opts: ["The theater features high-end projector tools.", "They moved it to the theater to accommodate the immense registration numbers.", "Panels involve academic industry experts.", "I am planning to apply for graduate school next semester."], correct: 1, exp: "Esclarece la ubicación definitiva resolviendo la duda del cambio de aula." }
+                            ]
+                        },
+                        {
+                            id: "l_m2_t2", type: "listen_convo", title: "Task 2: Conversation",
+                            instructions: "Listen to a more complex campus conversation.",
+                            subtasks: [
+                                {
+                                    title: "Conversation",
+                                    audio: [
+                                        { speaker: "man", text: "Hello, Professor Henderson. I'm reviewing the calibration feedback you gave for our team robotics presentation." },
+                                        { speaker: "woman", text: "Ah, yes, David. Your group built an impressive mechanical arm prototype, but your software loop lacked proper error-handling parameters." },
+                                        { speaker: "man", text: "Right. You mentioned it doesn't account for torque voltage spikes. Honestly, we're confused about how to patch that without slowing the execution loop down." },
+                                        { speaker: "woman", text: "I see. Instead of testing continuous values, introduce a digital threshold filter that triggers a separate exception thread. That keeps the core loop fast." }
+                                    ],
+                                    questions: [
+                                        { q: "What was the main weakness of the student's robotics prototype?", opts: ["The mechanical arm structure was weak.", "The software loop lacked proper error-handling for voltage spikes.", "The team missed their presentation window.", "The project exceeded its allowed budget metrics."], correct: 1, hint: "Listen to what the professor says about the software loop.", exp: "La debilidad residía en la falta de parámetros de manejo de errores ante picos de voltaje." },
+                                        { q: "What software adjustment does the professor recommend?", opts: ["Rebuilding the mechanical arm from scratch", "Introducing a digital threshold filter with a separate exception thread", "Slowing down the entire execution loop permanently", "Asking another engineering team to rewrite the code"], correct: 1, hint: "Listen to her recommendation following 'Instead of testing...'.", exp: "Sugiere implementar un filtro de umbral digital que derive el error a un hilo de excepción independiente." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "l_m2_t3", type: "listen_announcement", title: "Task 3: Announcement",
+                            instructions: "Listen to this announcement regarding campus services.",
+                            audio: { text: "Attention facility managers and students. The campus engineering office will perform a mandatory safety isolation sequence across the main hydraulics building this Saturday. Central water water lines will be offline from 7:00 AM to 1:00 PM for valve pressure upgrades. Ensure all fluid-dependent test assemblies are drained completely by Friday night to prevent system damage.", speaker: "man" },
+                            questions: [
+                                { q: "What maintenance work is scheduled for this Saturday?", opts: ["An upgrade to network server routers", "A mandatory safety isolation sequence on hydraulics lines", "A campus-wide fire drill simulation", "An inspection of laboratory chemical storage boxes"], correct: 1, hint: "Listen for the words following 'execute a...'.", exp: "Se ejecutará una secuencia de aislamiento de seguridad en las líneas hidráulicas para actualizar válvulas." },
+                                { q: "What action must students complete by Friday night to protect equipment?", opts: ["Relocate all samples to Building B", "Drain all fluid-dependent test assemblies completely", "Submit an online waiver form via Canvas", "Reset their laboratory user profiles"], correct: 1, hint: "Listen to the precaution required to prevent system damage.", exp: "Se exige vaciar por completo los conjuntos de prueba dependientes de fluidos." }
+                            ]
+                        },
+                        {
+                            id: "l_m2_t4", type: "listen_talk", title: "Task 4: Academic Talk (Science/Tech)",
+                            instructions: "Listen to a 1-minute lecture on a tech topic.",
+                            audio: { text: "Welcome back to our organic chemistry series. Today we are analyzing carbon quantum dots and their emerging application in medical bio-imaging matrices. What is the topic of the talk? It is how these tiny carbon nanoparticles can track cellular defects without toxic side effects. Historically, physicians relied on heavy metal semiconductors, such as cadmium-based quantum dots, to illuminate interior cell structures. While highly effective, cadmium is extremely toxic to living tissue, limiting its usage in live human diagnostic runs. Carbon quantum dots, conversely, feature excellent biocompatibility. They are composed of pure carbon and are synthesised from common organic materials like sugars. When exposed to ultraviolet light, these dots emit vibrant fluorescent wavelengths. Because cells absorb them naturally through endocytosis without triggering inflammatory pathways, oncologists can track real-time tumor cell migrations. The primary engineering bottleneck preventing large-scale commercial pharmaceutical deployment is fluorescence blinking—intermittent light emissions that disrupt continuous data tracking loops under high-intensity microscopes.", speaker: "woman" },
+                            questions: [
+                                { q: "What is the primary focus of the talk?", opts: ["The structural production of plastic cell models", "Using carbon quantum dots in medical bio-imaging matrices", "The history of manufacturing heavy metal jewelry", "Testing ultraviolet radiation absorption on skin"], correct: 1, hint: "Listen for the application mentioned early on.", exp: "La lección aborda el uso de puntos cuánticos de carbono como herramienta segura de bioimagen médica." },
+                                { q: "What major disadvantage characterizes older cadmium-based quantum dots?", opts: ["They melt at normal human body temperature.", "They are extremely toxic to living tissue.", "They do not emit any fluorescent light fields.", "They are too large to pass inside a cell structure."], correct: 1, hint: "Listen to the critique of heavy metal semiconductors.", exp: "Los puntos basados en cadmio presentan una alta toxicidad para los tejidos vivos, restringiendo su uso." },
+                                { q: "How do carbon quantum dots illuminate cellular structures under evaluation?", opts: ["By heating up the surrounding cell matrix", "They emit vibrant fluorescent wavelengths under ultraviolet light.", "By changing their color shape permanently", "They vibrate mechanically at high speeds"], correct: 1, hint: "Listen for what happens when they are exposed to UV light.", exp: "Emiten longitudes de onda fluorescentes vibrantes al ser expuestos a luz ultravioleta." },
+                                { q: "What engineering bottleneck currently prevents large-scale pharmaceutical deployment?", opts: ["The high cost of purchasing raw sugar compounds", "The phenomenon of fluorescence blinking disrupting tracking", "Government laws banning all nanotechnology devices", "An inability of dots to enter the cell structure via endocytosis"], correct: 1, hint: "Listen for the challenge term explained at the very end.", exp: "El obstáculo actual es el parpadeo de fluorescencia ('fluorescence blinking'), que altera el rastreo continuo de datos." }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        speaking: {
+            title: "Speaking Section",
+            modules: [
+                {
+                    id: "s1", title: "Speaking Tasks",
+                    tasks: [
+                        {
+                            id: "s_t1", type: "speak_repeat", title: "Task 1: Listen and Repeat",
+                            instructions: "Context: You are going to hear 7 phrases related to requesting assistance from a university technical desk. You will have 15 seconds to repeat each phrase exactly as you hear it clearly into your microphone.",
+                            phrases: [
+                                "Could you please verify if my registration form uploaded successfully?",
+                                "I need to request an official transcript for my grant application folder.",
+                                "The laboratory instructor requires everyone to wear protective safety goggles.",
+                                "Is there an academic advisor available to speak later this afternoon?",
+                                "I am experiencing technical difficulties accessing the student web portal network.",
+                                "Please make sure to double-check the final deadline for abstract submissions.",
+                                "Our introductory calculus lecture has been rescheduled to the science center auditorium."
+                            ]
+                        },
+                        {
+                            id: "s_t2", type: "speak_interview", title: "Task 2: Take an Interview",
+                            instructions: "Context: An interviewer will ask you 4 consecutive questions about your exam style preferences and campus technology views. You have 45 seconds to answer each.",
+                            questions: [
+                                "Some students prefer take-home exams because they offer extensive time for deep analysis, while others prefer timed in-class testing because it avoids prolonged anxiety. Which do you favor and why?",
+                                "How has the integration of digital cloud collaborative workspaces modified your personal approach to group assignments?",
+                                "Do you believe universities should require all non-science majors to pass foundational courses in statistics and data analysis? Please explain.",
+                                "If you were awarded an educational grant, would you choose to spend it on acquiring specialized software tools or funding field study travel? Justify your choice."
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        writing: {
+            title: "Writing Section",
+            modules: [
+                {
+                    id: "w1", title: "Writing Tasks",
+                    tasks: [
+                        {
+                            id: "w_t1", type: "write_sentence", title: "Task 1: Build a Sentence",
+                            instructions: "Construct a grammatically correct sentence from the given components.",
+                            items: [
+                                { words: ["resolved", "The", "issue", "technician", "the", "network"], correct: "The technician resolved the network issue" },
+                                { words: ["must", "validate", "passes", "Students", "their", "transit"], correct: "Students must validate their transit passes" },
+                                { words: ["postponed", "due", "seminar", "The", "was", "to", "illness"], correct: "The seminar was postponed due to illness" },
+                                { words: ["placed", "folder", "She", "her", "in", "the", "cabinet"], correct: "She placed her folder in the cabinet" },
+                                { words: ["need", "formulas", "to", "verify", "the", "We"], correct: "We need to verify the formulas" },
+                                { words: ["is", "complex", "The", "upgrades", "for", "closed"], correct: "The complex is closed for upgrades" },
+                                { words: ["secured", "funding", "He", "a", "his", "for", "project"], correct: "He secured a funding for his project" },
+                                { words: ["provides", "university", "workshops", "The", "excellent", "writing"], correct: "The university provides excellent writing workshops" },
+                                { words: ["review", "guidelines", "Please", "your", "before", "submitting"], correct: "Please review your guidelines before submitting" },
+                                { words: ["experiment", "highly", "successful", "The", "was"], correct: "The experiment was highly successful" }
+                            ]
+                        },
+                        {
+                            id: "w_t2", type: "write_email", title: "Task 2: Write an Email",
+                            timeLimit: 420, // 7 minutes
+                            instructions: "You have 7 minutes to write an email. Write a formal email to the Student Financial Services Desk regarding an incorrect late fee charge. In your email, you must include the following 3 aspects:\n1) Provide your registration account details and state the precise date your tuition payment was settled.\n2) Attach verification proof (such as your bank transaction confirmation number text).\n3) Request the rapid removal of the penalty fee before registration locks take effect.\n\nAn effective response should be around 100 words."
+                        },
+                        {
+                            id: "w_t3", type: "write_academic", title: "Task 3: Academic Discussion",
+                            timeLimit: 600, // 10 minutes
+                            instructions: "You have 10 minutes. Read the professor's post and the two student responses. Then, contribute to the discussion.\n\nIn your response, you should do the following:\n- Express and support your opinion.\n- Make a contribution to the discussion in your own words.\n\nAn effective response will contain at least 100 words.",
+                            prof: "<strong>Professor Vance:</strong> This week, we evaluate cultural tourism frameworks and public funding matrices. Many city councils are passing structural ordinances that subsidize and offer free entry to all local history museums and art galleries for the general public, covering the lost ticket revenues using municipal tourist hotel taxes. Critics argue that this strategy reduces the operating budgets of museums, as relying on tax volatility hurts long-term structural exhibits. Proponents maintain that free access democratizes culture and drives secondary spending inside surrounding neighborhoods. What is your stance? Should public museums be completely free to all visitors?",
+                            student1: "<strong>Rachel:</strong> I strongly advocate for entirely free public museums. Cultural heritage should never be restricted behind a financial paywall. Free entry turns museums into community spaces where families and low-income students can return repeatedly to study and gather inspiration. When cities fund museums via tourist taxes, they distribute the financial weight onto visitors who consume city infrastructure, creating a fair cycle that boosts educational standards across local communities.",
+                            student2: "<strong>Marcus:</strong> Rachel's framework sounds noble, but it fails from a practical management perspective. When entry is free, museums become overcrowded spaces, reducing the quality of the visitor experience. More importantly, hotel taxes fluctuate heavily based on economic downturns. If tourism drops, museum funding collapses instantly. Charging a reasonable ticket fee ensures a stable, independent stream of revenue that curators can use to purchase premium international exhibits and properly preserve fragile artifacts."
+                        }
+                    ]
+                }
+            ]
+        }
+    };
+
+    // --- STATE ---
+    let currentSection = 'reading';
+    let currentModule = 0;
+    let currentTask = 0;
+    let globalSeconds = 0;
+    let timerInterval;
+    let recognition;
+    let speakingTranscripts = {};
+    let scores = { reading: {correct:0, total:0}, listening: {correct:0, total:0} };
+
+    // --- INIT ---
+    function init() {
+        startTimer();
+        setupSpeechRecognition();
+        renderSidebar();
+        renderTask();
+    }
+
+    // --- TIMER ---
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            globalSeconds++;
+            const mins = Math.floor(globalSeconds / 60).toString().padStart(2, '0');
+            const secs = (globalSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('global-timer').innerText = `${mins}:${secs}`;
+        }, 1000);
+    }
+
+    // --- NAVIGATION ---
+    function changeSection(section) {
+        currentSection = section;
+        currentModule = 0;
+        currentTask = 0;
+        
+        ['reading', 'listening', 'speaking', 'writing', 'results'].forEach(s => {
+            const btn = document.getElementById(`nav-${s}`);
+            if(s === section) {
+                btn.classList.add('tab-active');
+                btn.classList.remove('text-gray-500');
+            } else {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-gray-500');
+            }
+        });
+        
+        if (section === 'results') {
+            document.getElementById('sidebar').innerHTML = '';
+            renderResults();
+        } else {
+            renderSidebar();
+            renderTask();
+        }
+    }
+
+    function renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.innerHTML = '';
+        const sectionData = examData[currentSection];
+        
+        sectionData.modules.forEach((mod, mIndex) => {
+            const modDiv = document.createElement('div');
+            modDiv.className = 'py-2 px-4 font-bold text-gray-700 bg-gray-100 border-b';
+            modDiv.innerText = mod.title;
+            sidebar.appendChild(modDiv);
+
+            mod.tasks.forEach((task, tIndex) => {
+                const taskBtn = document.createElement('button');
+                taskBtn.className = `w-full text-left py-2 px-6 text-sm hover:bg-gray-200 ${mIndex === currentModule && tIndex === currentTask ? 'subtab-active' : ''}`;
+                taskBtn.innerText = task.title;
+                taskBtn.onclick = () => {
+                    currentModule = mIndex;
+                    currentTask = tIndex;
+                    renderSidebar();
+                    renderTask();
+                };
+                sidebar.appendChild(taskBtn);
+            });
+        });
+    }
+
+    function renderTask() {
+        const content = document.getElementById('main-content');
+        const task = examData[currentSection].modules[currentModule].tasks[currentTask];
+        
+        let html = `<h2 class="text-2xl font-bold mb-6 text-blue-800">${task.title}</h2>`;
+        
+        if (task.type === 'complete_words') {
+            html += `
+                <div class="bg-white p-6 rounded shadow-sm border border-gray-200 text-lg leading-relaxed mb-6">
+                    ${task.text}
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="checkCompleteWords('${task.id}')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Comprobar Respuestas</button>
+                    <button onclick="showHintsCompleteWords('${task.id}')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">Ver Pistas</button>
+                </div>
+                <div id="feedback-${task.id}" class="mt-4"></div>
+            `;
+        } 
+        else if (task.type === 'daily_life' || task.type === 'academic') {
+            if (task.passage) {
+                html += renderPassageAndQuestions(task);
+            } else if (task.subtasks) {
+                task.subtasks.forEach((sub, idx) => {
+                    html += `<h3 class="text-xl font-bold mt-8 mb-4 border-b pb-2">${sub.title}</h3>`;
+                    html += renderPassageAndQuestions(sub, `${task.id}_sub${idx}`);
+                });
+            }
+        }
+        else if (task.type === 'listen_choose') {
+            html += `<p class="mb-4 text-gray-600"><i class="fa-solid fa-headphones"></i> ${task.instructions}</p>`;
+            task.items.forEach((item, idx) => {
+                html += `
+                <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4">
+                    <div class="flex items-center gap-4 mb-4">
+                        <span class="font-bold">Item ${idx+1}:</span>
+                        <button onclick="playAudio('${item.audio.text.replace(/'/g, "\\'")}', '${item.audio.speaker}')" class="bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600"><i class="fa-solid fa-play"></i> Play Audio</button>
+                    </div>
+                    <div class="space-y-2 pl-4">
+                        ${item.opts.map((opt, oIdx) => `
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="radio" name="q_${task.id}_${idx}" value="${oIdx}">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button onclick="checkSingleMCQ('${task.id}_${idx}', ${item.correct}, '${item.exp.replace(/'/g, "\\'")}')" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded">Comprobar</button>
+                    </div>
+                    <div id="fb_${task.id}_${idx}" class="mt-2 text-sm"></div>
+                </div>`;
+            });
+        }
+        else if (task.type === 'listen_announcement' || task.type === 'listen_talk') {
+            html += `
+                <p class="mb-4 text-gray-600"><i class="fa-solid fa-headphones"></i> ${task.instructions}</p>
+                <div class="bg-white p-6 rounded shadow-sm border border-gray-200 mb-6 flex justify-center">
+                    <button onclick="playAudio('${task.audio.text.replace(/'/g, "\\'")}', '${task.audio.speaker}')" class="bg-green-500 text-white px-8 py-4 rounded-full text-xl hover:bg-green-600 shadow-lg transition-transform hover:scale-105"><i class="fa-solid fa-play mr-2"></i> Play Audio</button>
+                </div>
+            `;
+            html += renderOnlyQuestions(task.questions, task.id);
+        }
+        else if (task.type === 'listen_convo') {
+            html += `<p class="mb-4 text-gray-600"><i class="fa-solid fa-headphones"></i> ${task.instructions}</p>`;
+            task.subtasks.forEach((sub, idx) => {
+                html += `<h3 class="text-xl font-bold mt-8 mb-4 border-b pb-2">${sub.title}</h3>`;
+                let convoData = encodeURIComponent(JSON.stringify(sub.audio));
+                html += `
+                <div class="bg-white p-6 rounded shadow-sm border border-gray-200 mb-6 flex justify-center">
+                    <button onclick="playConversation(decodeURIComponent('${convoData}'))" class="bg-green-500 text-white px-6 py-3 rounded-full hover:bg-green-600 shadow-md"><i class="fa-solid fa-play mr-2"></i> Play Conversation</button>
+                </div>`;
+                html += renderOnlyQuestions(sub.questions, `${task.id}_sub${idx}`);
+            });
+        }
+        else if (task.type === 'speak_repeat') {
+            html += `<div class="bg-yellow-50 p-4 border-l-4 border-yellow-400 mb-6">${task.instructions}</div>`;
+            task.phrases.forEach((phrase, idx) => {
+                html += `
+                <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-gray-500 mr-2">#${idx+1}</span>
+                        <button onclick="playAudio('${phrase.replace(/'/g, "\\'")}', 'woman')" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"><i class="fa-solid fa-volume-high"></i> Listen</button>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span id="timer_sr_${idx}" class="font-mono text-lg font-bold text-gray-700">15s</span>
+                        <button id="btn_sr_${idx}" onclick="startSpeakingTask('sr_${idx}', 15)" class="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600"><i class="fa-solid fa-microphone"></i> Record</button>
+                    </div>
+                </div>
+                <div id="transcript_sr_${idx}" class="text-sm italic text-gray-600 mb-4 ml-4"></div>
+                `;
+            });
+        }
+        else if (task.type === 'speak_interview') {
+            html += `<div class="bg-yellow-50 p-4 border-l-4 border-yellow-400 mb-6">${task.instructions}</div>`;
+            task.questions.forEach((q, idx) => {
+                html += `
+                <div class="bg-white p-6 rounded shadow-sm border border-gray-200 mb-4">
+                    <div class="mb-4">
+                        <button onclick="playAudio('${q.replace(/'/g, "\\'")}', 'man')" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 mb-2"><i class="fa-solid fa-volume-high"></i> Listen to Interviewer</button>
+                        <p class="text-sm text-gray-400 italic">(The text will not be visible in the real exam, just listen)</p>
+                    </div>
+                    <div class="flex items-center justify-between bg-gray-50 p-4 rounded">
+                        <span class="text-gray-600 font-semibold">Your Response:</span>
+                        <div class="flex items-center gap-4">
+                            <span id="timer_si_${idx}" class="font-mono text-2xl font-bold text-gray-700">45s</span>
+                            <button id="btn_si_${idx}" onclick="startSpeakingTask('si_${idx}', 45)" class="bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600"><i class="fa-solid fa-microphone"></i> Start Answer</button>
+                        </div>
+                    </div>
+                    <div id="transcript_si_${idx}" class="mt-4 text-sm italic text-blue-800 bg-blue-50 p-2 rounded hidden"></div>
+                </div>`;
+            });
+        }
+        else if (task.type === 'write_sentence') {
+            html += `<p class="mb-4 text-gray-600">${task.instructions}</p>`;
+            task.items.forEach((item, idx) => {
+                const shuffled = [...item.words].sort(() => Math.random() - 0.5);
+                html += `
+                <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6">
+                    <p class="font-bold mb-2">Sentence ${idx+1}:</p>
+                    <div class="flex flex-wrap gap-2 mb-4" id="source_${idx}">
+                        ${shuffled.map((w, wIdx) => `<span draggable="true" ondragstart="drag(event)" id="word_${idx}_${wIdx}" class="word-chip bg-blue-100 text-blue-800 px-3 py-1 rounded shadow-sm">${w}</span>`).join('')}
+                    </div>
+                    <div class="drop-zone p-2 bg-gray-50 flex flex-wrap gap-2 items-center" id="target_${idx}" ondrop="drop(event)" ondragover="allowDrop(event)">
+                        <span class="text-gray-400 text-sm pointer-events-none">Arrastra las palabras aquí...</span>
+                    </div>
+                    <button onclick="checkSentence(${idx}, '${item.correct.replace(/'/g, "\\'")}')" class="mt-4 text-sm bg-blue-600 text-white px-3 py-1 rounded">Comprobar</button>
+                    <div id="fb_sent_${idx}" class="mt-2 text-sm"></div>
+                </div>`;
+            });
+        }
+        else if (task.type === 'write_email') {
+            html += `
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-gray-600 whitespace-pre-line">${task.instructions}</p>
+                    <div id="local-timer-email" class="text-2xl font-mono font-bold bg-gray-200 px-4 py-2 rounded">07:00</div>
+                </div>
+                <textarea id="email-text" class="w-full h-64 p-4 border rounded shadow-inner focus:outline-blue-500 resize-none" placeholder="Start typing your email here..." oninput="countWords('email-text', 'email-wc')"></textarea>
+                <div class="mt-2 text-right text-gray-500 font-bold">Word count: <span id="email-wc">0</span></div>
+            `;
+            setTimeout(() => startLocalTimer('email', task.timeLimit), 100);
+        }
+        else if (task.type === 'write_academic') {
+            html += `
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-gray-600 whitespace-pre-line">${task.instructions}</p>
+                    <div id="local-timer-acad" class="text-2xl font-mono font-bold bg-gray-200 px-4 py-2 rounded">10:00</div>
+                </div>
+                <div class="bg-white p-4 rounded border mb-4 text-sm space-y-4 shadow-sm">
+                    <div class="bg-gray-50 p-3 rounded">${task.prof}</div>
+                    <div class="bg-blue-50 p-3 rounded ml-8">${task.student1}</div>
+                    <div class="bg-green-50 p-3 rounded ml-8">${task.student2}</div>
+                </div>
+                <textarea id="acad-text" class="w-full h-48 p-4 border rounded shadow-inner focus:outline-blue-500 resize-none" placeholder="Write your post here..." oninput="countWords('acad-text', 'acad-wc')"></textarea>
+                <div class="mt-2 text-right text-gray-500 font-bold">Word count: <span id="acad-wc">0</span></div>
+            `;
+            setTimeout(() => startLocalTimer('acad', task.timeLimit), 100);
+        }
+
+        content.innerHTML = html;
+    }
+
+    // --- RENDER HELPERS ---
+    function renderPassageAndQuestions(task, idPrefix = task.id) {
+        let html = `<div class="flex flex-col lg:flex-row gap-6 mb-8">`;
+        html += `<div class="lg:w-1/2 bg-white p-6 rounded shadow-sm border border-gray-200 overflow-y-auto max-h-[600px] text-lg leading-relaxed">${task.passage}</div>`;
+        html += `<div class="lg:w-1/2 flex flex-col gap-6 overflow-y-auto max-h-[600px] pr-2">`;
+        task.questions.forEach((q, idx) => {
+            html += `
+            <div class="bg-white p-4 rounded shadow-sm border border-gray-200">
+                <p class="font-bold mb-3">${idx+1}. ${q.q}</p>
+                <div class="space-y-2">
+                    ${q.opts.map((opt, oIdx) => `
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                            <input type="radio" name="q_${idPrefix}_${idx}" value="${oIdx}">
+                            <span>${opt}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="checkMCQ('${idPrefix}_${idx}', ${q.correct}, '${q.exp.replace(/'/g, "\\'")}', '${currentSection}')" class="text-sm bg-blue-600 text-white px-3 py-1 rounded">Comprobar</button>
+                    <button onclick="showHint('fb_${idPrefix}_${idx}', '${q.hint.replace(/'/g, "\\'")}')" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded">Pista</button>
+                </div>
+                <div id="fb_${idPrefix}_${idx}" class="mt-2 text-sm"></div>
+            </div>`;
+        });
+        html += `</div></div>`;
+        return html;
+    }
+
+    function renderOnlyQuestions(questions, idPrefix) {
+        let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">`;
+        questions.forEach((q, idx) => {
+            html += `
+            <div class="bg-white p-4 rounded shadow-sm border border-gray-200">
+                <p class="font-bold mb-3">${idx+1}. ${q.q}</p>
+                <div class="space-y-2">
+                    ${q.opts.map((opt, oIdx) => `
+                        <label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                            <input type="radio" name="q_${idPrefix}_${idx}" value="${oIdx}">
+                            <span>${opt}</span>
+                        </label>
+                    `).join('')}
+                </div>
+                <div class="mt-4 flex gap-2">
+                    <button onclick="checkMCQ('${idPrefix}_${idx}', ${q.correct}, '${q.exp.replace(/'/g, "\\'")}', '${currentSection}')" class="text-sm bg-blue-600 text-white px-3 py-1 rounded">Comprobar</button>
+                    <button onclick="showHint('fb_${idPrefix}_${idx}', '${q.hint.replace(/'/g, "\\'")}')" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded">Pista</button>
+                </div>
+                <div id="fb_${idPrefix}_${idx}" class="mt-2 text-sm"></div>
+            </div>`;
+        });
+        html += `</div>`;
+        return html;
+    }
+
+    // --- INTERACTION LOGIC ---
+    function checkCompleteWords(taskId) {
+        const task = examData.reading.modules[0].tasks[0];
+        scores.reading.total += task.answers.length;
+        let html = "";
+        let correctCount = 0;
+        task.answers.forEach((ans, idx) => {
+            const input = document.getElementById(`cw_${idx+1}`).value.trim().toLowerCase();
+            if (input === ans.toLowerCase()) {
+                correctCount++;
+                html += `<div class="text-green-600"><i class="fa-solid fa-check"></i> <b>Hueco ${idx+1}:</b> Correcto. ${task.explanations[idx]}</div>`;
+            } else {
+                html += `<div class="text-red-600"><i class="fa-solid fa-xmark"></i> <b>Hueco ${idx+1}:</b> Incorrecto. Era '${ans}'. ${task.explanations[idx]}</div>`;
+            }
+        });
+        scores.reading.correct += correctCount;
+        document.getElementById(`feedback-${taskId}`).innerHTML = `<div class="bg-gray-50 p-4 border rounded mt-4">${html}</div>`;
+    }
+
+    function showHintsCompleteWords(taskId) {
+        const task = examData.reading.modules[0].tasks[0];
+        let html = "<b>Pistas:</b><br>";
+        task.hints.forEach((h, idx) => {
+            html += `Hueco ${idx+1}: ${h}<br>`;
+        });
+        document.getElementById(`feedback-${taskId}`).innerHTML = `<div class="bg-blue-50 p-4 border border-blue-200 rounded mt-4">${html}</div>`;
+    }
+
+    function checkMCQ(qId, correctIdx, exp, section) {
+        scores[section] = scores[section] || {correct:0, total:0};
+        scores[section].total++;
+        
+        const selected = document.querySelector(`input[name="q_${qId}"]:checked`);
+        const fbDiv = document.getElementById(`fb_${qId}`);
+        if (!selected) {
+            fbDiv.innerHTML = `<span class="text-orange-500">Por favor selecciona una respuesta.</span>`;
+            scores[section].total--; 
+            return;
+        }
+        if (parseInt(selected.value) === correctIdx) {
+            scores[section].correct++;
+            fbDiv.innerHTML = `<div class="feedback-correct"><i class="fa-solid fa-check"></i> <b>¡Correcto!</b> ${exp}</div>`;
+        } else {
+            fbDiv.innerHTML = `<div class="feedback-incorrect"><i class="fa-solid fa-xmark"></i> <b>Incorrecto.</b> ${exp}</div>`;
+        }
+        document.querySelectorAll(`input[name="q_${qId}"]`).forEach(el => el.disabled = true);
+    }
+    
+    function checkSingleMCQ(qId, correctIdx, exp) {
+        checkMCQ(qId, correctIdx, exp, 'listening');
+    }
+
+    function showHint(fbId, hint) {
+        document.getElementById(fbId).innerHTML = `<div class="text-blue-600 bg-blue-50 p-2 rounded mt-2"><i class="fa-regular fa-lightbulb"></i> Pista: ${hint}</div>`;
+    }
+
+    // --- AUDIO (TTS) ---
+    function playAudio(text, gender) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        
+        if (gender === 'man') {
+            utterance.pitch = 0.5; 
+        } else {
+            utterance.pitch = 1.2; 
+        }
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function playConversation(convoJson) {
+        const convo = JSON.parse(convoJson);
+        window.speechSynthesis.cancel();
+        
+        let i = 0;
+        function speakNext() {
+            if (i < convo.length) {
+                const utterance = new SpeechSynthesisUtterance(convo[i].text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.95;
+                utterance.pitch = convo[i].speaker === 'man' ? 0.5 : 1.2;
+                utterance.onend = speakNext;
+                window.speechSynthesis.speak(utterance);
+                i++;
+            }
+        }
+        speakNext();
+    }
+
+    // --- SPEECH TO TEXT (STT) ---
+    function setupSpeechRecognition() {
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+        } else {
+            console.warn("Speech recognition not supported in this browser.");
+        }
+    }
+
+    let currentRecTimer;
+    function startSpeakingTask(taskId, seconds) {
+        const btn = document.getElementById(`btn_${taskId}`);
+        const timerDisplay = document.getElementById(`timer_${taskId}`);
+        const transcriptDiv = document.getElementById(`transcript_${taskId}`);
+        
+        if (btn.disabled) return;
+        
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Recording...`;
+        btn.classList.replace('bg-red-500', 'bg-red-300');
+        transcriptDiv.classList.remove('hidden');
+        transcriptDiv.innerHTML = "Listening...";
+        
+        let finalTranscript = "";
+        
+        if (recognition) {
+            recognition.onresult = (event) => {
+                let interim = "";
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + " ";
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                transcriptDiv.innerHTML = `<b>You said:</b> ${finalTranscript} <i class="text-gray-400">${interim}</i>`;
+                speakingTranscripts[taskId] = finalTranscript;
+            };
+            recognition.start();
+        } else {
+            transcriptDiv.innerHTML = "<i>Microphone not supported. Please pretend to speak.</i>";
+        }
+
+        let timeLeft = seconds;
+        currentRecTimer = setInterval(() => {
+            timeLeft--;
+            timerDisplay.innerText = `${timeLeft}s`;
+            if (timeLeft <= 0) {
+                clearInterval(currentRecTimer);
+                if (recognition) recognition.stop();
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Done`;
+                btn.classList.replace('bg-red-303', 'bg-gray-400');
+                if(!speakingTranscripts[taskId]) speakingTranscripts[taskId] = "(No audio recorded)";
+                transcriptDiv.innerHTML = `<b>Saved Transcript:</b> ${speakingTranscripts[taskId]}`;
+            }
+        }, 1000);
+    }
+
+    // --- WRITING TOOLS ---
+    function countWords(inputId, outputId) {
+        const text = document.getElementById(inputId).value;
+        const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+        document.getElementById(outputId).innerText = words;
+    }
+
+    let localInterval;
+    function startLocalTimer(type, seconds) {
+        if(localInterval) clearInterval(localInterval);
+        const display = document.getElementById(`local-timer-${type}`);
+        let timeLeft = seconds;
+        
+        localInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft >= 0) {
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+                display.innerText = `${m}:${s}`;
+                display.classList.remove('overtime');
+            } else {
+                const over = Math.abs(timeLeft);
+                const m = Math.floor(over / 60).toString().padStart(2, '0');
+                const s = (over % 60).toString().padStart(2, '0');
+                display.innerText = `Overtime: +${m}:${s}`;
+                display.classList.add('overtime');
+            }
+        }, 1000);
+    }
+
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+    function drop(ev) {
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text");
+        if (ev.target.classList.contains('drop-zone') || ev.target.id.startsWith('source_')) {
+            ev.target.appendChild(document.getElementById(data));
+            const placeholder = ev.target.querySelector('span.pointer-events-none');
+            if (placeholder) placeholder.remove();
+        }
+    }
+
+    function checkSentence(idx, correctStr) {
+        const target = document.getElementById(`target_${idx}`);
+        const chips = target.querySelectorAll('.word-chip');
+        let formed = Array.from(chips).map(c => c.innerText).join(' ');
+        const fb = document.getElementById(`fb_sent_${idx}`);
+        
+        if (formed === correctStr) {
+            fb.innerHTML = `<div class="feedback-correct"><i class="fa-solid fa-check"></i> <b>Correct!</b></div>`;
+        } else {
+            fb.innerHTML = `<div class="feedback-incorrect"><i class="fa-solid fa-xmark"></i> <b>Incorrect.</b> Should be: "${correctStr}"</div>`;
+        }
+    }
+
+    // --- RESULTS ---
+    function renderResults() {
+        const content = document.getElementById('main-content');
+        
+        let html = `
+        <div class="max-w-4xl mx-auto w-full">
+            <h2 class="text-3xl font-bold mb-8 text-center text-blue-800">Exam Results Summary</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow border border-gray-200 text-center">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-2">Reading</h3>
+                    <div class="text-5xl font-bold text-blue-600 mb-2">${scores.reading.correct} <span class="text-2xl text-gray-400">/ ${scores.reading.total}</span></div>
+                    <p class="text-gray-500">Correct Items Evaluated</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow border border-gray-200 text-center">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-2">Listening</h3>
+                    <div class="text-5xl font-bold text-blue-600 mb-2">${scores.listening.correct} <span class="text-2xl text-gray-400">/ ${scores.listening.total}</span></div>
+                    <p class="text-gray-500">Correct Items Evaluated</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow border border-gray-200 mb-8">
+                <h3 class="text-xl font-bold mb-4 border-b pb-2">Speaking Transcripts</h3>
+                <p class="text-sm text-gray-500 mb-4">Review what the system recorded during your speaking tasks.</p>
+                <div class="space-y-4">
+        `;
+        
+        let hasTranscripts = false;
+        for (const [taskId, text] of Object.entries(speakingTranscripts)) {
+            hasTranscripts = true;
+            html += `<div class="bg-gray-50 p-3 rounded border"><span class="font-bold text-sm text-gray-700">Task ${taskId}:</span> <i class="text-blue-800">${text}</i></div>`;
+        }
+        if(!hasTranscripts) html += `<p class="italic text-gray-400">No speaking tasks recorded yet.</p>`;
+        
+        html += `
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow border border-gray-200">
+                <h3 class="text-xl font-bold mb-4 border-b pb-2">Writing Submissions</h3>
+                <p class="italic text-gray-500 text-sm">Essays are recorded locally in the inputs during the session. An instructor would evaluate them based on rubrics.</p>
+            </div>
+        </div>`;
+        
+        content.innerHTML = html;
+    }
+
+    window.onload = init;
+
+</script>
+</body>
+</html>

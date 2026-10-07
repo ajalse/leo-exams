@@ -1,0 +1,716 @@
+<!DOCTYPE html><html lang="es"><head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator - 27 Questions (Vol. 11 Advanced)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #121212; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: "DM Sans", sans-serif;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            background-color: #f3f0df; 
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; 
+            flex-direction: column;
+            height: 100%;
+            max-height: 720px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+        }
+        
+        .slide-container.active-slide {
+            display: flex;
+        }
+
+        .top-bar {
+            background-color: #005088; 
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            height: 70px;
+            width: 100%;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .top-bar .module-title { font-size: clamp(16px, 2vw, 20px); font-weight: 700; font-family: "Merriweather", serif; }
+        .top-bar .timer { font-size: clamp(18px, 2vw, 24px); font-weight: 700; background: #11caa0; color: #121212; padding: 5px 15px; border-radius: 20px; }
+
+        h1, h2, h3 { font-family: "Merriweather", serif; color: #005088; }
+        p, li, label { font-family: "DM Sans", sans-serif; font-size: 16px; line-height: 1.5; color: #121212; }
+        
+        .slide-title {
+            font-size: clamp(20px, 3vw, 32px);
+            padding: 15px 40px 10px;
+            border-bottom: 2px solid #cdd6e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .q-domain { font-size: clamp(12px, 1.5vw, 16px); font-family: "DM Sans", sans-serif; background-color: #cdd6e2; padding: 5px 12px; border-radius: 12px; color: #005088; }
+
+        .content-area {
+            display: flex;
+            flex-grow: 1;
+            padding: 15px 40px;
+            gap: 30px;
+            min-height: 0; 
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .passage-col, .options-col {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cdd6e2;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .passage-text {
+            font-family: "Merriweather", serif;
+            font-size: clamp(14px, 1.8vw, 17px);
+            line-height: 1.7;
+            border-left: 5px solid #11caa0;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-text { font-weight: 700; font-size: clamp(16px, 2vw, 19px); margin-bottom: 20px; }
+
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 12px;
+            border: 2px solid #cdd6e2;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            font-size: clamp(14px, 1.6vw, 16px);
+        }
+        .radio-option:hover { background-color: #f0f4f8; border-color: #005088; }
+        .radio-option input[type="radio"] { margin-top: 4px; transform: scale(1.2); accent-color: #005088; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-small {
+            background-color: #cdd6e2;
+            color: #005088;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: "DM Sans", sans-serif;
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+        .btn-small:hover { background-color: #11caa0; color: #121212; }
+
+        .hidden-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: clamp(14px, 1.6vw, 16px);
+            display: none; 
+        }
+        .hint-box { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .exp-box { background-color: #e2e3e5; border-left: 4px solid #6c757d; }
+
+        .nav-bar {
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            border-top: 1px solid #cdd6e2;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        .nav-btn {
+            background-color: #005088;
+            color: #ffffff;
+            border: none;
+            padding: 10px 25px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { background-color: #003d68; }
+        .nav-btn.secondary { background-color: transparent; color: #005088; border: 2px solid #005088; }
+        .nav-btn.secondary:hover { background-color: #f3f0df; }
+        .nav-btn.submit { background-color: #11caa0; color: #121212; }
+
+        .full-bg-image { background-size: cover; background-position: center; }
+        .full-bg-image .overlay {
+            background: linear-gradient(to right, rgba(0, 80, 136, 0.95), rgba(0, 80, 136, 0.7));
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10%;
+            color: white;
+        }
+        .full-bg-image h1 { color: #f3f0df; font-size: clamp(40px, 6vw, 80px); margin-bottom: 20px; }
+        .full-bg-image p { color: #ffffff; font-size: clamp(16px, 2vw, 24px); max-width: 800px; margin-bottom: 40px; }
+
+        .css-bar-chart { display: flex; align-items: flex-end; gap: 30px; height: 200px; padding: 20px 0 0 40px; border-bottom: 2px solid #121212; border-left: 2px solid #121212; margin-top:20px;}
+        .css-bar { width: 40px; background-color: #005088; position: relative; display: flex; justify-content: center; }
+        .css-bar span { position: absolute; bottom: -30px; font-weight: 700; font-size: 14px; }
+        .css-bar .val { position: absolute; top: -25px; font-weight: 700; font-size: 14px; color: #005088;}
+        
+        @media (max-width: 768px) {
+            .two-column { grid-template-columns: 1fr; }
+            .content-area { padding: 15px; }
+            .passage-col, .options-col { height: auto; min-height: 300px; }
+            .slide-container { border-radius: 0; }
+            .css-bar-chart { height: 150px; gap: 15px;}
+            .css-bar { width: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a id="boton-inicio" href="/">🏠︎</a>
+<script>
+    const questionsData = [
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "In machine learning, 'overfitting' occurs when a model learns the training data too perfectly, memorizing its specific noise and outliers rather than underlying patterns. Consequently, when introduced to new, unseen data, the overfitted model will produce _______ predictions, appearing highly confident but being entirely inaccurate.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) spurious", "B) infallible", "C) dogmatic", "D) tangential"],
+            correct: "A",
+            hint: "El modelo memoriza el ruido y, al ver datos nuevos, da predicciones que parecen reales pero son falsas o engañosas. Busca una palabra que signifique 'falso' o 'ilegítimo'.",
+            exp: "La respuesta correcta es A (spurious). 'Spurious' significa algo que no es lo que parece ser; falso o engañoso. Un modelo sobreajustado da resultados falsamente precisos (spurious predictions)."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "Some symbiotic relationships in the deep ocean are remarkably _______. Certain species of bioluminescent bacteria will colonize a host squid for a few hours to safely consume a specific nutrient, only to abruptly detach and dissipate back into the ocean currents once the resource is depleted.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) permanent", "B) evanescent", "C) pervasive", "D) draconian"],
+            correct: "B",
+            hint: "La relación dura 'unas pocas horas' y luego se disipa. Se necesita una palabra que signifique 'fugaz' o 'de corta duración'.",
+            exp: "La respuesta correcta es B (evanescent). 'Evanescent' describe algo que se desvanece o desaparece rápidamente; efímero. Contrasta perfectamente con algo permanente."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "Translating ancient Sumerian clay tablets is notoriously difficult because the cuneiform script is highly _______. A single symbol can represent a phonetic syllable, an entire word, or a grammatical concept depending entirely on its surrounding context.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) polysemous", "B) archaic", "C) superficial", "D) inexorable"],
+            correct: "A",
+            hint: "Un solo símbolo puede significar muchas cosas diferentes según el contexto. ¿Qué palabra significa 'que tiene múltiples significados'?",
+            exp: "La respuesta correcta es A (polysemous). 'Polysemous' (polisémico) significa tener múltiples significados, lo cual es la definición exacta del problema descrito con los símbolos cuneiformes."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "The nation's currency market became increasingly _______ following the sudden resignation of the central bank's governor. Investors, unsure of future monetary policies, triggered massive, unpredictable fluctuations in exchange rates based on mere rumors and unverified news.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) steadfast", "B) methodical", "C) capricious", "D) vestigial"],
+            correct: "C",
+            hint: "El mercado experimentó 'fluctuaciones masivas e impredecibles' basadas en rumores. Busca una palabra que signifique 'inconstante' o 'impredecible'.",
+            exp: "La respuesta correcta es C (capricious). 'Capricious' describe algo dado a cambios de humor o comportamiento repentinos e inexplicables, lo cual encaja con un mercado altamente volátil e irracional."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "For terrestrial astronomers, the rapid proliferation of commercial satellite mega-constellations in low Earth orbit has had a highly _______ effect. The sunlight reflecting off thousands of artificial objects creates bright streaks across long-exposure images, effectively blinding sensitive telescopes and ruining crucial deep-space observations.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) pernicious", "B) benign", "C) nascent", "D) overt"],
+            correct: "A",
+            hint: "El efecto de los satélites es 'cegar los telescopios y arruinar observaciones', lo que es extremadamente dañino.",
+            exp: "La respuesta correcta es A (pernicious). 'Pernicious' significa tener un efecto muy dañino o perjudicial, especialmente de forma gradual o sutil, lo que describe el impacto de la contaminación lumínica en la astronomía."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In User Experience (UX) design, 'Dark Patterns' refer to user interfaces crafted to intentionally trick users into performing actions they did not intend, such as signing up for recurring premium subscriptions or surrendering private data. Unlike a poorly designed website that causes accidental confusion, a Dark Pattern relies on a sophisticated understanding of human psychology, exploiting cognitive biases to manipulate behavior for the company's financial gain.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To explain how to design a website that maximizes corporate revenue through psychology.",
+                "B) To define a deceptive design practice and explain the psychological mechanism it relies upon.",
+                "C) To argue that all modern UX designers act unethically when creating subscription models.",
+                "D) To demonstrate that cognitive biases are harmless when browsing the internet."
+            ],
+            correct: "B",
+            hint: "El texto define qué es un 'Dark Pattern' y luego explica que funciona explotando sesgos cognitivos (psicología humana).",
+            exp: "La respuesta correcta es B. El propósito es presentar la definición de los Patrones Oscuros y describir cómo funcionan al manipular la psicología humana para beneficio corporativo."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "For decades, biologists assumed that life could only exist where there was direct sunlight for photosynthesis and moderate temperatures. However, the discovery of extremophiles—microorganisms thriving in pitch-black, highly acidic subglacial lakes buried beneath miles of Antarctic ice—has radically altered astrobiology. If life can flourish in these severe, alien-like terrestrial conditions, it suggests that the frozen oceans of Jupiter's moon Europa might also harbor living organisms.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To demonstrate how extreme terrestrial environments challenge previous biological assumptions about the prerequisites for life.",
+                "B) To prove definitively that living organisms currently exist beneath the ice of Jupiter's moon Europa.",
+                "C) To outline the specific chemical composition of highly acidic subglacial lakes in Antarctica.",
+                "D) To argue that sunlight is ultimately unnecessary for the survival of any species on Earth."
+            ],
+            correct: "A",
+            hint: "El texto dice que los biólogos asumían algo, pero el hallazgo de extremófilos ha 'alterado radicalmente' esa visión sobre dónde puede existir vida.",
+            exp: "La respuesta correcta es A. El propósito principal es mostrar cómo este descubrimiento en la Tierra obliga a reevaluar qué condiciones son necesarias para la vida (y sus implicaciones espaciales)."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> Eighteenth-century historian Edward Gibbon famously attributed the fall of the Roman Empire to internal moral decay. He argued that as Rome grew wealthy, its citizens lost their civic virtue and martial discipline, becoming soft and corrupt. This internal rot, Gibbon claimed, weakened the state from within, making it an easy target for invading barbarian tribes.\n<br><br><strong>Text 2:</strong> Modern historians analyzing ice cores and tree rings point to external, catastrophic factors that crippled Rome. Around the 6th century, a severe global cooling event caused massive crop failures. This was immediately followed by the devastating Justinian Plague, which wiped out nearly half the empire's population, destroying its tax base and military manpower simultaneously.",
+            question: "Based on the texts, how would the author of Text 2 most likely respond to the claims made in Text 1?",
+            options: [
+                "A) By arguing that Text 1 ignores the severe environmental and biological pressures that crippled the empire.",
+                "B) By agreeing that moral decay caused the global cooling event that led to crop failures.",
+                "C) By suggesting that the barbarian tribes were actually responsible for spreading the Justinian Plague.",
+                "D) By proving that the Roman tax base was unaffected by the loss of civic virtue."
+            ],
+            correct: "A",
+            hint: "El Texto 1 culpa a problemas internos (moralidad, corrupción). El Texto 2 culpa a catástrofes externas (clima, plaga).",
+            exp: "La respuesta correcta es A. El autor del Texto 2 (factores externos/ambientales) consideraría que la teoría de Gibbon (Texto 1) es incompleta al ignorar el inmenso impacto del clima y las pandemias."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> Advocates champion decentralized cryptocurrencies like Bitcoin as the ultimate tool for financial liberation. Because transactions are recorded on a public blockchain maintained by a distributed network of peers, no central bank or government can freeze a citizen's assets, track their anonymous purchases, or arbitrarily devalue the currency by printing more of it.\n<br><br><strong>Text 2:</strong> Governments worldwide are developing Central Bank Digital Currencies (CBDCs). While CBDCs use the same underlying blockchain technology as cryptocurrencies, they are entirely centralized. Privacy advocates warn that if cash is replaced by a CBDC, the government will have a permanent, unerasable ledger of every single transaction a citizen makes, granting the state unprecedented surveillance powers.",
+            question: "Based on the texts, what would the author of Text 2 most likely point out regarding the technology praised in Text 1?",
+            options: [
+                "A) It is incapable of being used by governments because it is too mathematically complex.",
+                "B) It can be repurposed by centralized authorities to achieve the exact opposite social outcome—total financial surveillance.",
+                "C) It provides a level of financial liberation that Central Bank Digital Currencies will perfectly emulate.",
+                "D) It requires far too much electricity to ever be adopted as a global payment system."
+            ],
+            correct: "B",
+            hint: "El Texto 1 elogia el blockchain porque da libertad y evita el control del gobierno. El Texto 2 dice que los gobiernos usarán ese mismo blockchain (CBDC) para controlar y vigilar todo.",
+            exp: "La respuesta correcta es B. El Texto 2 advierte que la misma tecnología (blockchain) que se alaba en el Texto 1 por dar anonimato, puede ser usada por autoridades centralizadas para crear un sistema de vigilancia masiva."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "The Sentinelese people of the Andaman Islands are frequently described by the media as an 'uncontacted' tribe, entirely ignorant of the modern world. Anthropologists clarify that this label is misleading. The Sentinelese have observed passing airplanes, washed-up cargo, and encountered exploratory boats for over a century. Their aggressive defense of their shores is not born of primitive ignorance, but rather a conscious, informed choice to actively resist colonization and protect themselves from foreign diseases to which they have no immunity.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) The Sentinelese lack the technological capacity to understand what airplanes or boats are.",
+                "B) Foreign diseases have already wiped out the majority of the Sentinelese population on the islands.",
+                "C) The Sentinelese are not ignorant of the outside world, but rather make a deliberate, strategic choice to maintain their isolation.",
+                "D) The media accurately portrays the Sentinelese as a tribe that wishes to engage in international trade."
+            ],
+            correct: "C",
+            hint: "El texto desmiente la idea de que son 'ignorantes' y afirma que su hostilidad es una 'elección consciente e informada'.",
+            exp: "La respuesta correcta es C. La idea central es desmentir el mito de la tribu aislada por ignorancia, aclarando que su aislamiento es una defensa activa e informada."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In classical Newtonian physics, time is an absolute constant, ticking away at the exact same rate for everyone everywhere in the universe. Albert Einstein's theory of Special Relativity dismantled this assumption. Einstein demonstrated 'time dilation,' showing that time is relative to the observer's frame of reference. Specifically, as an object moves faster through space, approaching the speed of light, its experience of time actually slows down relative to a stationary observer.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Newtonian physics correctly proved that time moves faster when objects travel near the speed of light.",
+                "B) Einstein discovered that stationary observers cannot perceive the passage of time accurately.",
+                "C) According to special relativity, time is not an absolute constant but rather slows down for objects moving at extreme velocities.",
+                "D) The speed of light is the only absolute constant that can be measured by stationary observers."
+            ],
+            correct: "C",
+            hint: "El texto contrasta a Newton (el tiempo es constante) con Einstein (el tiempo se ralentiza a altas velocidades).",
+            exp: "La respuesta correcta es C. Resume la idea de la 'dilatación del tiempo' de Einstein, donde el tiempo es relativo y se frena a velocidades extremas."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In computer science, a system is considered 'Turing complete' if it can simulate any single-taped Turing machine, meaning it is theoretically capable of calculating any computable function given enough time and memory. Surprisingly, software engineers have discovered that sandbox video games like *Minecraft*, utilizing its in-game 'Redstone' mechanics, are actually Turing complete. Players have successfully built functioning 8-bit processors and basic calculators entirely within the game's block-building environment.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Minecraft was originally designed to serve as an educational tool for teaching computer architecture.",
+                "B) Complex computational systems can be unexpectedly simulated within the confined rules of seemingly simple video games.",
+                "C) Turing complete systems are incapable of processing 8-bit calculations without external memory.",
+                "D) Video games consume too much memory to function as reliable single-taped Turing machines."
+            ],
+            correct: "B",
+            hint: "El texto usa Minecraft como un ejemplo 'sorprendente' de un entorno donde se pueden construir ordenadores funcionales (Turing complete).",
+            exp: "La respuesta correcta es B. La idea central es ilustrar cómo sistemas computacionales complejos pueden surgir o ser construidos en entornos inesperados como un videojuego."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Ecologists hypothesize that the reintroduction of apex predators into an ecosystem can trigger a 'trophic cascade' that physically alters the region's geography. Specifically, they argue that when wolves were reintroduced to Yellowstone National Park, they reduced the overpopulated elk herds. This prevented the elk from overgrazing young willow trees along the riverbanks, allowing the trees to mature and their extensive root systems to stabilize the soil, thereby changing the flow of the rivers.",
+            question: "Which finding, if true, would most strongly support the ecologists' hypothesis?",
+            options: [
+                "A) Studies show that the wolf population in Yellowstone naturally regulates itself based on winter temperatures.",
+                "B) Severe riverbank erosion and frequent changes in river paths decreased significantly only after elk populations declined and mature willow trees reappeared.",
+                "C) Elk in Yellowstone possess genetic adaptations that allow them to digest mature willow bark more efficiently than other herbivores.",
+                "D) The reintroduction of wolves led to a massive increase in the local beaver population, which subsequently dammed the rivers."
+            ],
+            correct: "B",
+            hint: "La hipótesis vincula tres cosas: menos alces -> más sauces maduros -> raíces que estabilizan los ríos. Busca evidencia que confirme esta cadena.",
+            exp: "La respuesta correcta es B. Esta opción proporciona evidencia directa de la relación causa-efecto: la erosión de los ríos disminuyó únicamente cuando bajó el número de alces y crecieron los sauces."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Medical researchers trained an artificial intelligence model to detect melanomas (skin cancer) from photographs. Initially, the model outperformed human dermatologists in diagnostic accuracy. However, critics hypothesized that the model's accuracy was inherently biased because it was trained on a dataset predominantly featuring photographs of light-skinned patients, meaning it would perform poorly on patients with darker skin tones.",
+            question: "Which finding, if true, would most strongly support the critics' hypothesis?",
+            options: [
+                "A) The AI model was found to require significantly more processing power when analyzing photographs taken in low lighting conditions.",
+                "B) Human dermatologists consistently failed to identify melanomas in light-skinned patients without the assistance of the AI model.",
+                "C) The model's diagnostic accuracy dropped by 40% when evaluating images of dark-skinned patients, but improved dramatically when retrained on a diverse dataset.",
+                "D) The dataset used to train the model contained an equal number of male and female patients."
+            ],
+            correct: "C",
+            hint: "La hipótesis es que el modelo falla en pieles oscuras por culpa de los datos sesgados de entrenamiento. Busca datos de que falla en pieles oscuras y se arregla si se le dan mejores datos.",
+            exp: "La respuesta correcta es C. Muestra la caída de precisión en pieles oscuras y confirma que la causa era la falta de datos, ya que mejoró al reentrenarse con datos diversos."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "An economic institute tracked the global market share of advanced semiconductor manufacturing capabilities by region in 2024.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 240px;'><span class='val'>60%</span><span>Taiwan</span></div><div class='css-bar' style='height: 80px; background-color: #11caa0;'><span class='val' style='color:#11caa0;'>20%</span><span>S.Korea</span></div><div class='css-bar' style='height: 40px; background-color: #cdd6e2;'><span class='val' style='color:#cdd6e2;'>10%</span><span>USA</span></div><div class='css-bar' style='height: 40px; background-color: #71717a;'><span class='val' style='color:#71717a;'>10%</span><span>EU</span></div></div><br>Based on the chart provided, which statement is most accurate?",
+            question: "Which statement is most accurate based on the chart?",
+            options: [
+                "A) The United States and the European Union combined manufacture more advanced semiconductors than South Korea.",
+                "B) Taiwan manufactures exactly three times as many advanced semiconductors as South Korea.",
+                "C) South Korea's market share is declining rapidly compared to the previous year.",
+                "D) The majority of semiconductor manufacturing occurs outside of the Asian continent."
+            ],
+            correct: "B",
+            hint: "Compara la barra de Taiwan (60%) con la de South Korea (20%). ¿Es una exactamente el triple de la otra?",
+            exp: "La respuesta correcta es B. El 60% (Taiwan) es exactamente el triple del 20% (South Korea). La opción A es incorrecta porque 10% + 10% = 20%, que es *igual*, no *mayor*."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A national energy commission published the percentage of total electricity generated from various renewable sources during the peak summer months.<br><br>Geothermal: 45%<br>Wind: 35%<br>Solar: 20%<br><br>The commission argued that despite massive public subsidies for solar panel installations, the nation still relies predominantly on subsurface thermal activity for its clean energy.",
+            question: "Which feature of the data most directly supports the commission's argument?",
+            options: [
+                "A) Geothermal energy accounts for more electricity production than Wind and Solar combined.",
+                "B) Solar energy production is exactly half the total production of Wind energy.",
+                "C) Geothermal energy produces more than twice the amount of electricity produced by Solar power.",
+                "D) Wind energy experienced the highest rate of growth compared to previous summer months."
+            ],
+            correct: "C",
+            hint: "Geothermal = 45%, Solar = 20%. ¿Es 45 más del doble de 20? Sí. ¿Es 45 mayor que Wind+Solar (35+20=55)? No.",
+            exp: "La respuesta correcta es C. 45% (Geothermal) es más del doble de 20% (Solar). La opción A es falsa porque 45% es menor que la suma de 35% + 20% (55%)."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "In behavioral economics, the 'Ultimatum Game' involves two players: a Proposer who decides how to split $10, and a Responder who can either accept or reject the split. If rejected, neither gets anything. According to pure rational-choice economic theory, the Responder should accept an unfair split like $9 for the Proposer and $1 for the Responder, because $1 is better than nothing. However, across diverse global cultures, Responders consistently reject highly unequal offers, leaving themselves with $0 just to ensure the greedy Proposer also gets $0. This consistent behavior implies that _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) human beings do not understand basic mathematics when playing experimental games.",
+                "B) humans intrinsically value fairness and are willing to incur a personal financial penalty to punish perceived injustice.",
+                "C) the Proposer is usually a wealthier individual than the Responder in real life.",
+                "D) rational-choice theory perfectly predicts human behavior in high-stakes financial environments."
+            ],
+            correct: "B",
+            hint: "Si la gente prefiere perder 1 dólar con tal de castigar al otro por ser injusto, significa que la justicia importa más que la lógica matemática del dinero.",
+            exp: "La respuesta correcta es B. La inferencia lógica es que el deseo de castigar la injusticia anula el deseo puramente racional de obtener un beneficio económico, desmintiendo la teoría de la elección racional."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "Astrophysicist Donald Kessler proposed a scenario, now known as the Kessler Syndrome, concerning low Earth orbit. He calculated that once the density of space debris (defunct satellites, rocket stages) reaches a critical threshold, any single collision between two objects will generate a massive cloud of shrapnel. This shrapnel will then impact other satellites, creating even more debris. Based on this model, it can be reasonably inferred that a major orbital collision could _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) safely clear the orbit of all debris by pushing the shrapnel down into the Earth's atmosphere.",
+                "B) trigger an unstoppable, self-sustaining chain reaction that eventually renders orbital space entirely unusable.",
+                "C) cause a sudden increase in the Earth's gravitational pull on the moon.",
+                "D) require satellites to be built exclusively from lightweight plastics to avoid taking damage."
+            ],
+            correct: "B",
+            hint: "Cada choque crea más basura, que causa más choques. Esto describe una reacción en cadena catastrófica.",
+            exp: "La respuesta correcta es B. El modelo describe una cascada exponencial de choques (reacción en cadena) que destruiría todo en órbita, volviéndola inutilizable."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "The human eye is remarkably adaptable and sensitive to incredibly subtle variations in light ______ it can distinguish between approximately ten million different colors under optimal conditions.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) light;",
+                "B) light,",
+                "C) light",
+                "D) light:"
+            ],
+            correct: "A",
+            hint: "Se trata de dos cláusulas independientes fuertemente vinculadas. Se requiere una puntuación fuerte que las separe sin conjunción.",
+            exp: "La respuesta correcta es A (light;). El punto y coma se emplea correctamente para unir dos oraciones independientes completas (cláusulas que podrían ir con punto y seguido)."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "The Voyager 1 space probe ______ which was launched by NASA in 1977 to study the outer solar system ______ has officially crossed the heliopause and entered interstellar space.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) probe, / system,",
+                "B) probe / system",
+                "C) probe; / system;",
+                "D) probe: / system:"
+            ],
+            correct: "A",
+            hint: "La información sobre cuándo fue lanzada aporta contexto adicional pero no es esencial para el núcleo de la oración. Es una aposición / cláusula no restrictiva.",
+            exp: "La respuesta correcta es A (probe, / system,). Las cláusulas de relativo no restrictivas deben ir delimitadas por comas para separarlas del sujeto ('The Voyager 1 space probe') y del verbo principal ('has officially crossed')."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "To theoretically solve the mathematical halting problem, Alan Turing introduced a groundbreaking conceptual device that would change history ______ the universal Turing machine.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) history",
+                "B) history;",
+                "C) history:",
+                "D) history,"
+            ],
+            correct: "C",
+            hint: "La cláusula principal termina y lo que sigue es la respuesta exacta o explicación directa a qué es ese 'dispositivo conceptual revolucionario'.",
+            exp: "La respuesta correcta es C (history:). Los dos puntos (colon) se utilizan al final de una oración completa para introducir una explicación, definición o revelación directa de lo mencionado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "Recent oceanographic research reveals that the intricate web of global oceanic currents, along with high-altitude atmospheric wind patterns, ______ largely responsible for regulating the Earth's surface temperature.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) are",
+                "B) is",
+                "C) were",
+                "D) have been"
+            ],
+            correct: "B",
+            hint: "Identifica el núcleo del sujeto. La frase 'along with...' no convierte el sujeto en plural. El sujeto es 'web'.",
+            exp: "La respuesta correcta es B (is). El sujeto verdadero es 'the intricate web' (singular). Las frases que comienzan con 'along with' o 'as well as' no alteran la concordancia del sujeto principal."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "By the time the Apollo 11 mission successfully landed astronauts on the lunar surface in 1969, thousands of NASA engineers and mathematicians ______ tirelessly behind the scenes for nearly a decade.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) work",
+                "B) are working",
+                "C) had worked",
+                "D) will work"
+            ],
+            correct: "C",
+            hint: "Una acción en el pasado ('trabajar durante casi una década') ocurrió ANTES de otro evento específico en el pasado ('aterrizar en 1969').",
+            exp: "La respuesta correcta es C (had worked). El pasado perfecto (past perfect) es obligatorio para indicar que una acción ya había ocurrido o se había completado antes de otra acción en el pasado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "To secure a residency at the prestigious hospital, every incoming medical student must ensure that ______ academic portfolio demonstrates both clinical excellence and profound empathy for patients.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) their",
+                "B) its",
+                "C) they're",
+                "D) there"
+            ],
+            correct: "A",
+            hint: "El pronombre posesivo debe referirse a 'every incoming medical student'. El inglés estándar moderno utiliza una forma específica para la neutralidad de género en singular.",
+            exp: "La respuesta correcta es A (their). 'Their' se acepta y se usa ampliamente en el SAT como pronombre y adjetivo posesivo de género neutro en singular, refiriéndose a una persona (el estudiante)."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "Proponents of nuclear fusion argue that it is the ultimate solution to the global energy crisis, promising a virtually limitless supply of clean, radioactive-free power using isotopes extracted from seawater. _______, the monumental technological hurdles of containing and maintaining plasma at temperatures exceeding millions of degrees remain largely unresolved in commercial reactors.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Consequently",
+                "B) Furthermore",
+                "C) However",
+                "D) Therefore"
+            ],
+            correct: "C",
+            hint: "La primera frase es extremadamente optimista sobre la fusión nuclear. La segunda frase presenta un obstáculo tecnológico masivo que impide su uso.",
+            exp: "La respuesta correcta es C (However). 'However' introduce un contraste fuerte, contraponiendo la promesa teórica de la energía con la dura realidad de los obstáculos tecnológicos."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "To combat severe air pollution, the municipal government implemented a strict congestion charge, heavily taxing all private vehicles entering the downtown commercial district during peak daylight hours. _______, ambient particulate matter in the city center decreased by twenty percent over the following six months.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Consequently",
+                "B) Conversely",
+                "C) Regardless",
+                "D) Alternatively"
+            ],
+            correct: "A",
+            hint: "Pusieron un impuesto a los coches (Causa). La contaminación bajó un 20% (Efecto).",
+            exp: "La respuesta correcta es A (Consequently). 'Consequently' (Por consiguiente) establece claramente una relación de causa y efecto directo entre la medida política y la mejora ambiental."
+        },
+        {
+            domain: "Expression of Ideas: Rhetorical Synthesis",
+            passage: "While researching the history of spaceflight, a student took the following notes:<br>• Katherine Johnson was a brilliant African American mathematician at NASA.<br>• Computers in the 1960s were prone to hiccups and glitches.<br>• Astronaut John Glenn refused to fly the Friendship 7 orbital mission until Johnson manually verified the computer's calculations.<br>• During the Apollo 11 mission in 1969, she calculated the precise trajectories needed to safely land on the moon.<br>• She was awarded the Presidential Medal of Freedom in 2015.",
+            question: "The student wants to emphasize Katherine Johnson's direct contribution to the success of the Apollo 11 moon landing. Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+            options: [
+                "A) Because computers in the 1960s were prone to glitches, astronaut John Glenn relied on Katherine Johnson's manual calculations.",
+                "B) During the Apollo 11 mission in 1969, Katherine Johnson calculated the precise trajectories needed to safely land on the moon.",
+                "C) Katherine Johnson, a brilliant mathematician who was awarded the Presidential Medal of Freedom in 2015, worked at NASA.",
+                "D) Before calculating the trajectories for the Apollo 11 moon landing, Katherine Johnson verified the numbers for the Friendship 7 orbital mission."
+            ],
+            correct: "B",
+            hint: "Busca la opción que hable exclusivamente de su 'contribución directa' al éxito específico del 'Apollo 11 moon landing'.",
+            exp: "La respuesta correcta es B. Esta opción se enfoca estrictamente en la misión Apolo 11 y destaca la contribución exacta (calcular trayectorias) que permitió que el aterrizaje fuera un éxito, cumpliendo la meta del estudiante."
+        }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+
+    function renderSlide(index) {
+        if (index >= questionsData.length) {
+            renderResults();
+            return;
+        }
+
+        const q = questionsData[index];
+        const container = document.getElementById('exam-root');
+        
+        container.innerHTML = `
+            <div class="top-bar">
+                <div class="module-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 11)</div>
+                <div class="timer"><i class="fa-regular fa-clock"></i> <span id="time-display">32:00</span></div>
+            </div>
+            <h2 class="slide-title">Question ${index + 1} <span class="q-domain">${q.domain}</span></h2>
+            
+            <div class="content-area">
+                <div class="two-column">
+                    <div class="passage-col">
+                        <p class="passage-text">${q.passage}</p>
+                        <p class="question-text">${q.question}</p>
+                    </div>
+                    <div class="options-col">
+                        <div class="radio-group" id="options-group">
+                            ${q.options.map((opt, i) => `
+                                <label class="radio-option">
+                                    <input type="radio" name="q${index}" value="${['A','B','C','D'][i]}">
+                                    ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn-small" onclick="document.getElementById('hint-box').style.display = 'block'">Ver Pista</button>
+                            <button class="btn-small" onclick="checkAnswer(${index})">Evaluar / Ver Explicación</button>
+                        </div>
+                        
+                        <div id="hint-box" class="hidden-box hint-box">
+                            <strong><i class="fa-solid fa-lightbulb"></i> Pista:</strong> ${q.hint}
+                        </div>
+                        <div id="exp-box" class="hidden-box exp-box">
+                            <strong>Explicación:</strong> ${q.exp}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-bar">
+                <button class="nav-btn secondary" onclick="prevQ()" ${index === 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>Anterior</button>
+                <button class="nav-btn ${index === questionsData.length - 1 ? 'submit' : ''}" onclick="nextQ()">
+                    ${index === questionsData.length - 1 ? 'Finalizar Examen' : 'Siguiente'}
+                </button>
+            </div>
+        `;
+    }
+
+    function checkAnswer(index) {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const expBox = document.getElementById('exp-box');
+        expBox.style.display = 'block';
+        
+        if (!selected) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation" style="color:#ffc107;"></i> No seleccionaste respuesta.</strong> <br><br> ${questionsData[index].exp}`;
+            return;
+        }
+
+        if (selected.value === questionsData[index].correct) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-check" style="color:#11caa0;"></i> ¡Correcto!</strong> <br><br> ${questionsData[index].exp}`;
+        } else {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Incorrecto.</strong> Elegiste la ${selected.value}. <br><br> ${questionsData[index].exp}`;
+        }
+    }
+
+    function nextQ() {
+        if (currentQ < questionsData.length - 1) {
+            currentQ++;
+            renderSlide(currentQ);
+        } else {
+            renderResults();
+        }
+    }
+
+    function prevQ() {
+        if (currentQ > 0) {
+            currentQ--;
+            renderSlide(currentQ);
+        }
+    }
+
+    function startExam() {
+        document.getElementById('slide-welcome').classList.remove('active-slide');
+        document.getElementById('exam-root').classList.add('active-slide');
+        renderSlide(0);
+        startTimer();
+    }
+
+    function renderResults() {
+        document.getElementById('exam-root').classList.remove('active-slide');
+        document.getElementById('slide-results').classList.add('active-slide');
+        clearInterval(timerInterval);
+    }
+
+    let timerInterval;
+    let timeLeft = 32 * 60; // 32 minutes
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            let m = Math.floor(timeLeft / 60);
+            let s = timeLeft % 60;
+            let display = document.getElementById('time-display');
+            if(display) display.innerText = `${m}:${s.toString().padStart(2, '0')}`;
+            if (timeLeft <= 0) { clearInterval(timerInterval); renderResults(); }
+        }, 1000);
+    }
+
+</script>
+
+<div class="slide-container active-slide full-bg-image" id="slide-welcome" style="background-image: url('https://placehold.co/1280x720/003d68/ffffff?text=Advanced+SAT+Simulator+Vol.+11');">
+    <div class="overlay">
+        <h1>SAT Simulator<br>Vol. 11 (Advanced / 27 Qs)</h1>
+        <p>Hard Difficulty & Multidisciplinary. This module contains 27 BRAND NEW, rigorous questions covering Natural Science, History, Social Science, Anthropology, and Complex Computer Science architectures. You have 32 minutes.</p>
+        <div>
+            <button class="nav-btn submit" style="font-size: 24px; padding: 15px 40px;" onclick="startExam()">Comenzar Examen <i class="fa-solid fa-play" style="margin-left:10px;"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Exam Root -->
+<div class="slide-container" id="exam-root">
+    <!-- Populated by JS -->
+</div>
+
+<div class="slide-container full-bg-image" id="slide-results" style="background-image: url('https://placehold.co/1280x720/0f5223/ffffff?text=Module+Completed');">
+    <div class="overlay">
+        <h1 style="font-size: 60px;"><i class="fa-solid fa-flag-checkered"></i> Examen Finalizado</h1>
+        <p style="font-size: 20px;">Has completado las 27 preguntas del simulador Vol. 11 (Nivel Avanzado).</p>
+        <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.3); max-width: 600px;">
+            <h3 style="color:#11caa0; margin-bottom: 10px;">Autoevaluación Avanzada</h3>
+            <p style="font-size: 16px;">¡Increíble constancia! Llegar al Volumen 11 significa que has entrenado tu comprensión lectora con más de 290 preguntas de alta complejidad. Has dominado textos sobre dilatación del tiempo, el síndrome de Kessler y el problema P vs NP. Sigue usando las explicaciones para perfeccionar tu gramática en inglés estándar.</p>
+        </div>
+        <div>
+            <button class="nav-btn" onclick="location.reload()"><i class="fa-solid fa-rotate-right" style="margin-right:10px;"></i> Repetir Simulador</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

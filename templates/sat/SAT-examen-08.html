@@ -1,0 +1,722 @@
+<!DOCTYPE html><html lang="es"><head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator - 27 Questions (Vol. 13 Advanced)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #121212; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: "DM Sans", sans-serif;
+            overflow: hidden;
+        }
+
+        .slide-container {
+            background-color: #f3f0df; 
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: none; 
+            flex-direction: column;
+            height: 100%;
+            max-height: 720px;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            max-width: 1280px;
+        }
+        
+        .slide-container.active-slide {
+            display: flex;
+        }
+
+        .top-bar {
+            background-color: #005088; 
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            height: 70px;
+            width: 100%;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .top-bar .module-title { font-size: clamp(16px, 2vw, 20px); font-weight: 700; font-family: "Merriweather", serif; }
+        .top-bar .timer { font-size: clamp(18px, 2vw, 24px); font-weight: 700; background: #11caa0; color: #121212; padding: 5px 15px; border-radius: 20px; }
+
+        h1, h2, h3 { font-family: "Merriweather", serif; color: #005088; }
+        p, li, label { font-family: "DM Sans", sans-serif; font-size: 16px; line-height: 1.5; color: #121212; }
+        
+        .slide-title {
+            font-size: clamp(20px, 3vw, 32px);
+            padding: 15px 40px 10px;
+            border-bottom: 2px solid #cdd6e2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .q-domain { font-size: clamp(12px, 1.5vw, 16px); font-family: "DM Sans", sans-serif; background-color: #cdd6e2; padding: 5px 12px; border-radius: 12px; color: #005088; }
+
+        .content-area {
+            display: flex;
+            flex-grow: 1;
+            padding: 15px 40px;
+            gap: 30px;
+            min-height: 0; 
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .passage-col, .options-col {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #cdd6e2;
+            padding: 20px;
+            overflow-y: auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .passage-text {
+            font-family: "Merriweather", serif;
+            font-size: clamp(14px, 1.8vw, 17px);
+            line-height: 1.7;
+            border-left: 5px solid #11caa0;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .question-text { font-weight: 700; font-size: clamp(16px, 2vw, 19px); margin-bottom: 20px; }
+
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 12px;
+            border: 2px solid #cdd6e2;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: 500;
+            font-size: clamp(14px, 1.6vw, 16px);
+        }
+        .radio-option:hover { background-color: #f0f4f8; border-color: #005088; }
+        .radio-option input[type="radio"] { margin-top: 4px; transform: scale(1.2); accent-color: #005088; }
+
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-small {
+            background-color: #cdd6e2;
+            color: #005088;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: "DM Sans", sans-serif;
+            font-size: clamp(12px, 1.5vw, 14px);
+        }
+        .btn-small:hover { background-color: #11caa0; color: #121212; }
+
+        .hidden-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: clamp(14px, 1.6vw, 16px);
+            display: none; 
+        }
+        .hint-box { background-color: #fff3cd; border-left: 4px solid #ffc107; }
+        .exp-box { background-color: #e2e3e5; border-left: 4px solid #6c757d; }
+
+        .nav-bar {
+            padding: 15px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #ffffff;
+            border-top: 1px solid #cdd6e2;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        .nav-btn {
+            background-color: #005088;
+            color: #ffffff;
+            border: none;
+            padding: 10px 25px;
+            font-size: clamp(14px, 1.8vw, 18px);
+            font-weight: 700;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { background-color: #003d68; }
+        .nav-btn.secondary { background-color: transparent; color: #005088; border: 2px solid #005088; }
+        .nav-btn.secondary:hover { background-color: #f3f0df; }
+        .nav-btn.submit { background-color: #11caa0; color: #121212; }
+
+        .full-bg-image { background-size: cover; background-position: center; }
+        .full-bg-image .overlay {
+            background: linear-gradient(to right, rgba(0, 80, 136, 0.95), rgba(0, 80, 136, 0.7));
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10%;
+            color: white;
+        }
+        .full-bg-image h1 { color: #f3f0df; font-size: clamp(40px, 6vw, 80px); margin-bottom: 20px; }
+        .full-bg-image p { color: #ffffff; font-size: clamp(16px, 2vw, 24px); max-width: 800px; margin-bottom: 40px; }
+
+        .css-bar-chart { display: flex; align-items: flex-end; gap: 30px; height: 200px; padding: 20px 0 0 40px; border-bottom: 2px solid #121212; border-left: 2px solid #121212; margin-top:20px;}
+        .css-bar { width: 40px; background-color: #005088; position: relative; display: flex; justify-content: center; }
+        .css-bar span { position: absolute; bottom: -30px; font-weight: 700; font-size: 14px; }
+        .css-bar .val { position: absolute; top: -25px; font-weight: 700; font-size: 14px; color: #005088;}
+        
+        @media (max-width: 768px) {
+            .two-column { grid-template-columns: 1fr; }
+            .content-area { padding: 15px; }
+            .passage-col, .options-col { height: auto; min-height: 300px; }
+            .slide-container { border-radius: 0; }
+            .css-bar-chart { height: 150px; gap: 15px;}
+            .css-bar { width: 30px; }
+        }
+    </style>
+</head>
+<body>
+
+    <a id="boton-inicio" href="/">🏠︎</a>
+<script>
+    const questionsData = [
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "In generative AI, 'Deepfakes' are created using Generative Adversarial Networks (GANs). The process involves two neural networks: a generator that creates synthetic media, and a discriminator that evaluates it against real media. Because the two networks continuously compete, the resulting artificial video often reaches a level of realism that makes it completely _______ from authentic footage.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) indistinguishable", "B) conspicuous", "C) derivative", "D) estranged"],
+            correct: "A",
+            hint: "La competencia entre las redes crea vídeos tan realistas que no se pueden diferenciar de los reales. Busca una palabra que signifique 'imposible de distinguir'.",
+            exp: "La respuesta correcta es A (indistinguishable). 'Indistinguishable' significa que no se puede notar la diferencia entre dos cosas, lo que encaja perfectamente con el alto nivel de realismo mencionado."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "While studying the rapid decline of the local amphibian population, ecologists discovered that the introduction of a seemingly harmless agricultural pesticide had a highly _______ effect. The chemical disrupted the frogs' endocrine systems, preventing them from reproducing and decimating the population within a single decade.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) salubrious", "B) negligible", "C) insidious", "D) ephemeral"],
+            correct: "C",
+            hint: "El pesticida parecía inofensivo al principio, pero su efecto destructivo se reveló gradualmente y de forma devastadora. Busca una palabra que signifique 'dañino de forma sutil o engañosa'.",
+            exp: "La respuesta correcta es C (insidious). 'Insidious' describe algo que causa daño de manera gradual, sutil y a menudo oculta, lo que contrasta con su apariencia inicialmente inofensiva."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "Historically, economic theory assumed that consumers were perfectly rational actors who meticulously calculated the utility of every purchase. However, the burgeoning field of neuroeconomics reveals that human spending habits are heavily influenced by emotional impulses and cognitive biases, rendering the classical model of the purely logical consumer largely _______.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) obsolete", "B) prescient", "C) immutable", "D) vindicated"],
+            correct: "A",
+            hint: "Si los nuevos descubrimientos demuestran que el modelo clásico estaba equivocado y ya no es útil, el modelo se ha vuelto anticuado.",
+            exp: "La respuesta correcta es A (obsolete). 'Obsolete' significa que algo ya no se usa o está anticuado, a menudo porque ha sido reemplazado por algo más preciso o moderno."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "The architectural design of the new municipal library was intentionally _______. Rather than adhering to a single historical style, the building seamlessly blended elements of brutalist concrete, neoclassical columns, and modern glass facades into a surprisingly cohesive structure.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) monotonous", "B) eclectic", "C) orthodox", "D) provincial"],
+            correct: "B",
+            hint: "El edificio no sigue un solo estilo, sino que mezcla varios estilos diferentes (brutalista, neoclásico, moderno). Busca una palabra que signifique 'que toma elementos de diversas fuentes'.",
+            exp: "La respuesta correcta es B (eclectic). 'Eclectic' describe un estilo o enfoque que deriva ideas, estilos o gustos de una amplia y diversa gama de fuentes."
+        },
+        {
+            domain: "Craft & Structure: Words in Context",
+            passage: "When deploying updates to critical banking software, engineers cannot afford even minor errors. To minimize risk, they utilize a deployment strategy that is exceptionally ______; code changes are released gradually to tiny subsets of users, heavily monitored, and immediately rolled back at the first sign of instability.",
+            question: "Which choice completes the text with the most logical and precise word or phrase?",
+            options: ["A) precipitous", "B) cavalier", "C) circumspect", "D) lethargic"],
+            correct: "C",
+            hint: "La estrategia se describe como gradual, fuertemente monitorizada y rápida para revertir errores. Es un enfoque muy cuidadoso y cauteloso.",
+            exp: "La respuesta correcta es C (circumspect). 'Circumspect' significa cauteloso, prudente y que considera todos los posibles riesgos y consecuencias antes de actuar."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "In blockchain technology, an 'oracle' is a third-party service that provides smart contracts with external information. Because blockchains are isolated networks that cannot natively fetch real-world data (like stock prices or weather conditions), smart contracts rely entirely on oracles to execute conditions. However, this creates a vulnerability: if the centralized oracle is hacked or provides false data, the decentralized smart contract will execute flawlessly based on that bad information, permanently transferring funds incorrectly.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To argue that smart contracts are ultimately too dangerous to be used for financial transactions.",
+                "B) To define a specific technological component and explain the security risk it introduces to an otherwise secure system.",
+                "C) To convince software engineers to stop using centralized data sources for weather conditions.",
+                "D) To demonstrate how hackers successfully stole millions of dollars from a specific blockchain network."
+            ],
+            correct: "B",
+            hint: "El texto define qué es un 'oráculo' y luego describe cómo su necesidad crea una vulnerabilidad ('creates a vulnerability') en la cadena de bloques.",
+            exp: "La respuesta correcta es B. El propósito es presentar el concepto de 'oráculo' en blockchain y destacar el problema de seguridad específico (el 'problema del oráculo') que genera."
+        },
+        {
+            domain: "Information & Ideas: Text Purpose",
+            passage: "The 'Resource Curse,' or the Paradox of Plenty, is an economic phenomenon where countries with an abundance of natural resources (such as oil or diamonds) tend to have less economic growth, less democracy, and worse development outcomes than countries with fewer natural resources. Economists attribute this to 'Dutch Disease,' where resource exports artificially inflate the national currency, making other domestic industries uncompetitive globally, while simultaneously encouraging political corruption as elites fight to monopolize the resource revenues.",
+            question: "Which choice best states the main purpose of the text?",
+            options: [
+                "A) To explain a seemingly contradictory economic theory and outline the mechanisms that cause it.",
+                "B) To criticize developing nations for failing to diversify their domestic industries.",
+                "C) To prove that oil is the most dangerous natural resource for a country's democratic institutions.",
+                "D) To argue that countries without natural resources are guaranteed to become wealthy democracies."
+            ],
+            correct: "A",
+            hint: "El texto define la 'Maldición de los recursos' (una paradoja) y luego explica las razones ('Dutch Disease', corrupción) de por qué ocurre.",
+            exp: "La respuesta correcta es A. El propósito principal es definir esta paradoja económica (abundancia de recursos = peor desarrollo) y detallar sus causas principales."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> For a century, physicists assumed that the universe's expansion was slowing down due to gravity. The discovery of 'Dark Energy'—a theoretical repulsive force accelerating the expansion—upended this view. Although invisible and undetectable by current instruments, Dark Energy must exist to balance the mathematical equations of the standard cosmological model.\n<br><br><strong>Text 2:</strong> Proponents of Modified Newtonian Dynamics (MOND) argue that we do not need to invent invisible, undetectable forces like Dark Energy to explain the universe's behavior. Instead, they propose that our fundamental understanding of gravity is simply incomplete. According to MOND, gravity behaves differently at extreme cosmic scales than it does within our solar system, completely eliminating the mathematical need for Dark Energy.",
+            question: "Based on the texts, how would MOND proponents (Text 2) most likely describe the concept of 'Dark Energy' mentioned in Text 1?",
+            options: [
+                "A) As a proven physical force that accelerates the expansion of the universe.",
+                "B) As an unnecessary theoretical invention used to prop up a flawed understanding of gravity.",
+                "C) As a repulsive force that only operates within the confines of our own solar system.",
+                "D) As the only valid mathematical solution to the standard cosmological model."
+            ],
+            correct: "B",
+            hint: "El Texto 1 dice que la Energía Oscura 'debe existir' para cuadrar las matemáticas. El Texto 2 dice que no necesitamos 'inventar fuerzas invisibles' y que basta con modificar cómo entendemos la gravedad.",
+            exp: "La respuesta correcta es B. Los defensores de MOND ven la Energía Oscura como un invento innecesario, argumentando que el problema real es que la fórmula tradicional de la gravedad es incorrecta a gran escala."
+        },
+        {
+            domain: "Information & Ideas: Cross-Text Connections",
+            passage: "<strong>Text 1:</strong> In 1952, Michael Ventris successfully deciphered Linear B, an ancient script found on clay tablets in Crete. For decades, linguists assumed the script represented an unknown, extinct Minoan language. Ventris shocked the academic world by proving that Linear B was actually an archaic, syllabic form of ancient Greek, pushing the documented history of the Greek language back by centuries.\n<br><br><strong>Text 2:</strong> While Ventris is universally celebrated for cracking the code of Linear B, historians often overlook the foundational work of Alice Kober. Kober spent years meticulously organizing the Linear B symbols into a grid based on grammatical inflection patterns. Although she died before the script was fully deciphered, her structural grid was the direct mathematical key that allowed Ventris to finally identify the language as Greek.",
+            question: "Based on the texts, what would the author of Text 2 most likely point out regarding Ventris's achievement described in Text 1?",
+            options: [
+                "A) It was entirely fraudulent, and the script remains undeciphered today.",
+                "B) It proved that the Minoan language was completely unrelated to ancient Greek.",
+                "C) It was a solo intellectual triumph that owed nothing to prior linguistic theories.",
+                "D) It was heavily dependent on the rigorous, uncredited structural analysis performed by Alice Kober."
+            ],
+            correct: "D",
+            hint: "El Texto 1 alaba a Ventris por descifrar el código. El Texto 2 dice que el trabajo de Kober fue la 'clave matemática directa' que permitió a Ventris lograrlo.",
+            exp: "La respuesta correcta es D. El autor del Texto 2 enfatizaría que el éxito de Ventris, descrito en el Texto 1, se basó crucialmente en el trabajo preparatorio y la cuadrícula estructural de Kober."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "Prions are a unique and terrifying class of infectious agents. Unlike bacteria, viruses, or fungi, prions contain absolutely no genetic material (DNA or RNA). They are simply misfolded proteins. When a prion enters a healthy brain, it acts as a corrupted template, physically forcing normal, healthy proteins to misfold in the exact same way. This chain reaction causes devastating, incurable neurodegenerative diseases, challenging the foundational biological rule that infection requires nucleic acid.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Prions are a type of highly resilient virus that attacks the human nervous system.",
+                "B) Neurodegenerative diseases can easily be cured by introducing healthy proteins into the brain.",
+                "C) Prions cause disease through a protein-misfolding chain reaction, defying traditional definitions of infectious agents because they lack DNA.",
+                "D) Bacteria and fungi are no longer considered dangerous infectious agents by modern biologists."
+            ],
+            correct: "C",
+            hint: "El texto subraya que los priones son únicos porque no tienen ADN/ARN, sino que infectan causando que otras proteínas se plieguen mal.",
+            exp: "La respuesta correcta es C. La idea central es definir qué son los priones (proteínas mal plegadas sin ADN) y cómo su mecanismo de infección desafía la biología tradicional."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In 1942, economist Joseph Schumpeter coined the term 'Creative Destruction.' He argued that capitalism is not a static equilibrium, but a continuous process of industrial mutation. According to Schumpeter, economic progress inherently requires the destruction of old economic structures to make way for new ones. For example, the invention of the automobile destroyed the horse-and-carriage industry, causing immense short-term job losses, but ultimately created a vastly larger and more efficient global transportation economy.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) The automobile industry is historically the only sector to experience significant economic progress.",
+                "B) Capitalism fundamentally relies on the obsolescence and destruction of old industries to drive long-term economic innovation.",
+                "C) Short-term job losses are a sign that an economy is failing and requires government intervention.",
+                "D) Joseph Schumpeter believed that economic equilibrium is the ultimate goal of all capitalist societies."
+            ],
+            correct: "B",
+            hint: "El texto usa el concepto de Schumpeter para explicar que el progreso exige destruir lo viejo (ej. los carruajes) para crear algo nuevo y mejor (ej. los coches).",
+            exp: "La respuesta correcta es B. Resume perfectamente el concepto de Destrucción Creativa: la destrucción de estructuras antiguas es un requisito inherente para la innovación y el progreso económico a largo plazo."
+        },
+        {
+            domain: "Information & Ideas: Central Idea",
+            passage: "In quantum computing, maintaining the delicate state of 'superposition'—where a qubit represents both 0 and 1 simultaneously—is incredibly difficult. Even microscopic changes in temperature or electromagnetic radiation can cause 'decoherence,' instantly destroying the quantum information. To make quantum computers commercially viable, engineers are developing Quantum Error Correction (QEC) architectures. Rather than trying to perfectly isolate a single physical qubit, QEC mathematically spreads the information of one 'logical' qubit across dozens of physical qubits, allowing the system to detect and correct errors without directly measuring (and thus collapsing) the quantum state.",
+            question: "What is the main idea of the text?",
+            options: [
+                "A) Superposition is a flawed theoretical concept that has delayed the commercialization of quantum computers.",
+                "B) Quantum computers are highly sensitive to interference, and Quantum Error Correction is the architectural solution being developed to manage this fragility.",
+                "C) QEC relies on measuring individual qubits to ensure they remain perfectly isolated from temperature changes.",
+                "D) Classical computers will soon replace quantum computers because they do not suffer from decoherence."
+            ],
+            correct: "B",
+            hint: "El texto presenta el problema (los qubits pierden su estado fácilmente por la decoherencia) y la solución que los ingenieros están creando (QEC).",
+            exp: "La respuesta correcta es B. La idea principal es exponer la fragilidad de la información cuántica (decoherencia) y cómo la Corrección Cuántica de Errores (QEC) aborda este problema distribuyendo la información."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Marine biologists hypothesize that the 'cookiecutter shark' utilizes a specialized form of bioluminescence known as counterillumination. The shark's underside is covered in light-emitting photophores that match the faint sunlight filtering down from the ocean surface. Researchers argue this effectively makes the shark invisible to predators swimming below it. However, the shark has a small, dark patch near its throat that does not emit light.",
+            question: "Which finding, if true, would most strongly suggest a secondary evolutionary function for the cookiecutter shark's bioluminescence?",
+            options: [
+                "A) Observations show that large predatory fish frequently mistake the dark throat patch for a small, silhouetted fish, luring them close enough for the shark to attack.",
+                "B) Genetic analysis reveals that the shark's photophores are structurally identical to those found in deep-sea jellyfish.",
+                "C) The shark's bioluminescence completely deactivates when it swims into completely dark, abyssal ocean zones.",
+                "D) Studies indicate that counterillumination is the most common camouflage strategy among mesopelagic marine life."
+            ],
+            correct: "A",
+            hint: "El texto dice que el camuflaje lo hace invisible, pero deja un 'parche oscuro'. Si queremos sugerir una *segunda* función evolutiva (no solo esconderse), ¿para qué serviría ese parche oscuro?",
+            exp: "La respuesta correcta es A. Si el parche oscuro engaña a otros peces haciéndoles creer que es una presa pequeña, la bioluminiscencia sirve como camuflaje *y además* como señuelo para cazar (función secundaria)."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Textual)",
+            passage: "Historians have long viewed the French Revolution of 1789 primarily as an ideological revolt, driven by the enlightened ideals of liberty and equality popularized by philosophers like Rousseau. A modern school of economic historians, however, argues that ideology was merely a secondary justification. They hypothesize that the true catalyst for the revolution was sheer thermodynamic crisis: a series of severe volcanic eruptions in Iceland caused consecutive years of crop failures across Europe, leading to hyperinflation of bread prices and mass starvation in Paris.",
+            question: "Which finding, if true, would most strongly support the economic historians' hypothesis?",
+            options: [
+                "A) Archival records from 1788 show a massive surge in the publication and circulation of philosophical pamphlets demanding democratic representation.",
+                "B) The leaders of the revolution explicitly cited Rousseau's 'Social Contract' in their declaration of a new government.",
+                "C) Data from European ice cores confirms severe global cooling in the 1780s, and municipal Parisian records show a direct correlation between spikes in the price of wheat and outbreaks of violent rioting.",
+                "D) The French monarchy successfully imported enough grain from the Ottoman Empire to feed the capital throughout the 1780s."
+            ],
+            correct: "C",
+            hint: "La hipótesis económica dice que la culpa fue de una crisis termodinámica (volcanes -> frío -> cosechas fallidas -> pan caro -> hambruna). Busca pruebas de este clima y su efecto económico.",
+            exp: "La respuesta correcta es C. La evidencia de núcleos de hielo que confirma el frío, combinada con registros que vinculan el alto precio del trigo con los disturbios, apoya fuertemente que la crisis climática/económica fue el verdadero catalizador."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A municipal transit authority surveyed 10,000 commuters in 2025 to determine why they choose to drive personal vehicles to work rather than use the newly expanded public train system.<br><br><div class='css-bar-chart'><div class='css-bar' style='height: 240px;'><span class='val'>60%</span><span>Travel Time</span></div><div class='css-bar' style='height: 100px; background-color: #11caa0;'><span class='val' style='color:#11caa0;'>25%</span><span>Inconvenient</span></div><div class='css-bar' style='height: 40px; background-color: #cdd6e2;'><span class='val' style='color:#cdd6e2;'>10%</span><span>Safety</span></div><div class='css-bar' style='height: 20px; background-color: #71717a;'><span class='val' style='color:#71717a;'>5%</span><span>Cost</span></div></div><br>Based on the chart provided, which statement is most accurate?",
+            question: "Which statement is most accurate based on the chart?",
+            options: [
+                "A) The cost of train tickets is the primary reason commuters avoid public transit.",
+                "B) Concerns about station routing (Inconvenient) deter exactly half as many commuters as Travel Time.",
+                "C) Travel Time is a more significant deterrent than all other surveyed factors combined.",
+                "D) Safety concerns motivate exactly three times as many drivers as Cost does."
+            ],
+            correct: "C",
+            hint: "El 'Travel Time' representa el 60%. Suma los otros tres factores (25 + 10 + 5). ¿Es 60 mayor que esa suma?",
+            exp: "La respuesta correcta es C. El 'Travel Time' (60%) supera matemáticamente la suma combinada de las otras tres razones (25% + 10% + 5% = 40%)."
+        },
+        {
+            domain: "Information & Ideas: Command of Evidence (Quantitative)",
+            passage: "A software analytics company tracked the initial detection method for critical software vulnerabilities (bugs) across several major tech firms during a single fiscal year.<br><br>Automated Scanning: 50%<br>Internal QA Testing: 30%<br>External Bug Bounties: 15%<br>Customer Reports: 5%<br><br>The analytics company argued that while external hackers are highly visible, companies actually rely overwhelmingly on their own proprietary, in-house tools to identify major code flaws.",
+            question: "Which feature of the data most directly supports the analytics company's argument?",
+            options: [
+                "A) External Bug Bounties account for exactly three times as many detections as Customer Reports.",
+                "B) Automated Scanning alone is responsible for exactly half of all vulnerability detections.",
+                "C) The combined detection rate of proprietary in-house tools (Automated Scanning and Internal QA) accounts for 80% of all detections.",
+                "D) Customer Reports are statistically insignificant in the software development lifecycle."
+            ],
+            correct: "C",
+            hint: "El argumento dice que dependen abrumadoramente de 'herramientas propias, internas' (in-house tools). ¿Cuáles de las opciones de la lista son herramientas internas?",
+            exp: "La respuesta correcta es C. Sumar 'Automated Scanning' (50%) e 'Internal QA' (30%) da un 80%, lo que demuestra de forma directa y contundente que la inmensa mayoría de las detecciones ocurren internamente."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "In materials science, 'superconductors' are materials that exhibit exactly zero electrical resistance, meaning they can conduct electricity without losing any energy to heat. However, all currently known superconductors only achieve this state at extreme, cryogenic temperatures, typically requiring cooling via liquid nitrogen or helium. Maintaining these sub-zero temperatures is extraordinarily expensive and logistically complex. Therefore, if a research team were to successfully synthesize a material that exhibits superconductivity at standard room temperature, it would likely _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) require even more liquid helium to prevent the material from melting.",
+                "B) instantly increase the electrical resistance of global power grids.",
+                "C) revolutionize global energy infrastructure by enabling the transmission of electricity with zero energy loss and without the need for expensive cooling systems.",
+                "D) prove that zero electrical resistance is a physical impossibility."
+            ],
+            correct: "C",
+            hint: "Si el único problema de los superconductores actuales es que necesitan frío extremo muy caro, un superconductor a temperatura ambiente solucionaría ese problema.",
+            exp: "La respuesta correcta es C. La inferencia lógica es que eliminar la necesidad de enfriamiento costoso permitiría aprovechar la ventaja de 'cero pérdida de energía' a nivel global, revolucionando la infraestructura."
+        },
+        {
+            domain: "Information & Ideas: Inferences",
+            passage: "During the 19th century, the British Empire heavily colonized the islands of Oceania. To facilitate governance and trade among diverse indigenous tribes who spoke hundreds of different, mutually unintelligible languages, the British introduced English as the administrative language. Over generations, the local populations developed 'Pidgin' languages—simplified linguistic blends combining English vocabulary with indigenous grammatical structures. Because language is heavily tied to cultural identity, and these Pidgin languages eventually evolved into native creoles spoken as a first language, one can infer that _______",
+            question: "Which choice most logically completes the text?",
+            options: [
+                "A) the indigenous tribes completely forgot their original cultures immediately upon contact with the British.",
+                "B) English grammar is inherently simpler and more efficient than the grammar of Oceanic languages.",
+                "C) colonization forced a linguistic compromise that inadvertently created entirely new, distinct cultural and linguistic identities in the region.",
+                "D) the British intentionally engineered Pidgin languages in London laboratories before deploying them overseas."
+            ],
+            correct: "C",
+            hint: "Los locales mezclaron el inglés administrativo con su propia gramática para sobrevivir, creando nuevos idiomas que terminaron siendo su lengua materna (y por tanto, parte de su identidad).",
+            exp: "La respuesta correcta es C. Se infiere que la imposición colonial generó una necesidad de comunicación que, orgánicamente, resultó en el nacimiento de nuevos idiomas (y culturas) híbridas."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "The Large Hadron Collider, the world's most powerful particle accelerator, is housed in a circular tunnel 27 kilometers in circumference beneath the French-Swiss ______ it utilizes superconducting magnets to smash protons together at near the speed of light.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) border it",
+                "B) border, it",
+                "C) border; it",
+                "D) border"
+            ],
+            correct: "C",
+            hint: "La frase tiene dos cláusulas independientes: 'The Large Hadron Collider... is housed in a tunnel' y 'it utilizes superconducting magnets...'. Si las unes con una coma, cometes un error de 'comma splice'.",
+            exp: "La respuesta correcta es C (border; it). Un punto y coma (semicolon) se utiliza correctamente para conectar dos oraciones independientes relacionadas sin usar una conjunción coordinante."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "Dr. Shirley Jackson ______ an American mathematician and theoretical physicist whose research led to the invention of caller ID and fiber optic cables ______ became the first African American woman to earn a doctorate from MIT.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) , an / cables,",
+                "B) an / cables",
+                "C) ; an / cables;",
+                "D) , an / cables"
+            ],
+            correct: "A",
+            hint: "La frase 'an American mathematician... fiber optic cables' es una aposición (cláusula no restrictiva) que nos da más información sobre la Dra. Jackson. Debe ir separada por comas.",
+            exp: "La respuesta correcta es A (, an / cables,). La aposición que añade información no esencial al sujeto debe ir delimitada por comas al principio y al final."
+        },
+        {
+            domain: "Standard English Conventions: Boundaries",
+            passage: "To optimize the new game engine for rendering highly realistic water physics, the software engineering team had to fundamentally rewrite three specific rendering modules ______ fluid dynamics, light refraction, and surface tension.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) modules",
+                "B) modules;",
+                "C) modules,",
+                "D) modules:"
+            ],
+            correct: "D",
+            hint: "La oración afirma que tuvieron que reescribir 'tres módulos de renderizado específicos', e inmediatamente después lista esos tres módulos exactos.",
+            exp: "La respuesta correcta es D (modules:). Los dos puntos (colon) se utilizan al final de una oración completa e independiente para introducir una lista explícita o enumeración."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "Recent oceanographic surveys have demonstrated that the dense accumulation of microplastics, drifting passively along major global ocean currents, ______ a severe and immediate threat to filter-feeding marine life.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) pose",
+                "B) poses",
+                "C) posing",
+                "D) to pose"
+            ],
+            correct: "B",
+            hint: "Identifica el núcleo del sujeto principal. No es 'microplastics' ni 'currents'. El sujeto de la oración es 'the dense accumulation'.",
+            exp: "La respuesta correcta es B (poses). El sujeto verdadero es 'accumulation', que es singular. Por lo tanto, el verbo debe ir conjugado en tercera persona del singular ('poses')."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "By the time the massive cybersecurity vulnerability was finally disclosed to the public, state-sponsored hackers ______ complete, undetected access to the government database for nearly six months.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) maintain",
+                "B) will maintain",
+                "C) are maintaining",
+                "D) had maintained"
+            ],
+            correct: "D",
+            hint: "Una acción ('mantener acceso durante seis meses') ocurrió y se completó ANTES de otro evento específico en el pasado ('fue revelada al público').",
+            exp: "La respuesta correcta es D (had maintained). El pasado perfecto (past perfect) es necesario aquí para indicar que una acción en el pasado ocurrió antes de que sucediera otro momento en el pasado."
+        },
+        {
+            domain: "Standard English Conventions: Form & Structure",
+            passage: "Before submitting the final architectural blueprint to the city planning commission, every aspiring urban designer must ensure that ______ structural calculations account for potential seismic activity.",
+            question: "Which choice completes the text so that it conforms to the conventions of Standard English?",
+            options: [
+                "A) its",
+                "B) their",
+                "C) they're",
+                "D) there"
+            ],
+            correct: "B",
+            hint: "El pronombre posesivo se refiere a 'every aspiring urban designer' (una persona individual).",
+            exp: "La respuesta correcta es B (their). En el inglés moderno estándar, 'their' se acepta y se utiliza formalmente como pronombre y adjetivo posesivo singular de género neutro."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "Cryptocurrencies operate on decentralized networks, theoretically freeing users from the oversight, fees, and inflation associated with traditional central banks. _______, the extreme volatility of crypto markets makes these digital assets highly unreliable for everyday purchases like buying groceries or paying rent.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) Consequently",
+                "B) Furthermore",
+                "C) Similarly",
+                "D) However"
+            ],
+            correct: "D",
+            hint: "La primera frase describe una gran ventaja teórica de las criptomonedas. La segunda frase describe un defecto práctico masivo.",
+            exp: "La respuesta correcta es D (However). 'However' establece un contraste fuerte y directo, contraponiendo la teoría positiva con la realidad negativa y práctica."
+        },
+        {
+            domain: "Expression of Ideas: Transitions",
+            passage: "To combat rising sea levels, the coastal city heavily invested in constructing a massive network of seawalls and advanced tidal pumping stations. _______, the city successfully prevented major flooding during the unprecedented storm surges of the following winter.",
+            question: "Which choice completes the text with the most logical transition?",
+            options: [
+                "A) As a result",
+                "B) Conversely",
+                "C) Regardless",
+                "D) Alternatively"
+            ],
+            correct: "A",
+            hint: "La ciudad construyó muros y bombas (Causa). La ciudad previno las inundaciones (Efecto).",
+            exp: "La respuesta correcta es A (As a result). Indica una relación clara de causa y efecto directo entre la inversión en infraestructura y el éxito obtenido."
+        },
+        {
+            domain: "Expression of Ideas: Rhetorical Synthesis",
+            passage: "While researching the history of robotics, a student took the following notes:<br>• The word 'robot' was first used in a 1920 science fiction play called *R.U.R.* (Rossum's Universal Robots).<br>• The play was written by Czech playwright Karel Čapek.<br>• In the play, robots are artificial, biological workers created to serve humans.<br>• The robots eventually rebel and destroy humanity.<br>• The word comes from the Old Church Slavonic word 'robota,' which translates to 'forced labor' or 'servitude.'",
+            question: "The student wants to emphasize the linguistic origin and original meaning of the term 'robot.' Which choice most effectively uses relevant information from the notes to accomplish this goal?",
+            options: [
+                "A) The word 'robot' was introduced to the world in Karel Čapek's 1920 science fiction play *R.U.R.*, where artificial workers eventually destroy humanity.",
+                "B) Introduced in a 1920 play, the term 'robot' is derived from the Old Church Slavonic word 'robota,' meaning 'forced labor' or 'servitude.'",
+                "C) In Karel Čapek's play *R.U.R.*, biological workers called robots rebel against their human creators.",
+                "D) Before it became a common term in modern technology, the word 'robot' was used in a Czech play about servitude."
+            ],
+            correct: "B",
+            hint: "El objetivo es enfatizar el 'origen lingüístico' y el 'significado original' de la palabra. Busca la opción que mencione de qué idioma viene y qué significa.",
+            exp: "La respuesta correcta es B. Esta opción cumple perfectamente el objetivo del estudiante al enfocarse en la etimología de la palabra (Old Church Slavonic) y su traducción literal ('forced labor'), descartando la trama secundaria de la obra."
+        }
+    ];
+
+    let currentQ = 0;
+    let score = 0;
+    let timerInterval;
+    let timeLeft = 32 * 60; // 32 minutes
+
+    function renderSlide(index) {
+        if (index >= questionsData.length) {
+            renderResults();
+            return;
+        }
+
+        const q = questionsData[index];
+        const container = document.getElementById('exam-root');
+        
+        container.innerHTML = `
+            <div class="top-bar">
+                <div class="module-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 13)</div>
+                <div class="timer"><i class="fa-regular fa-clock"></i> <span id="time-display">${formatTime(timeLeft)}</span></div>
+            </div>
+            <h2 class="slide-title">Question ${index + 1} <span class="q-domain">${q.domain}</span></h2>
+            
+            <div class="content-area">
+                <div class="two-column">
+                    <div class="passage-col">
+                        <p class="passage-text">${q.passage}</p>
+                        <p class="question-text">${q.question}</p>
+                    </div>
+                    <div class="options-col">
+                        <div class="radio-group" id="options-group">
+                            ${q.options.map((opt, i) => `
+                                <label class="radio-option">
+                                    <input type="radio" name="q${index}" value="${['A','B','C','D'][i]}">
+                                    ${opt}
+                                </label>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn-small" onclick="document.getElementById('hint-box').style.display = 'block'">Ver Pista</button>
+                            <button class="btn-small" onclick="checkAnswer(${index})">Evaluar / Ver Explicación</button>
+                        </div>
+                        
+                        <div id="hint-box" class="hidden-box hint-box">
+                            <strong><i class="fa-solid fa-lightbulb"></i> Pista:</strong> ${q.hint}
+                        </div>
+                        <div id="exp-box" class="hidden-box exp-box">
+                            <strong>Explicación:</strong> ${q.exp}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-bar">
+                <button class="nav-btn secondary" onclick="prevQ()" ${index === 0 ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>Anterior</button>
+                <button class="nav-btn ${index === questionsData.length - 1 ? 'submit' : ''}" onclick="nextQ()">
+                    ${index === questionsData.length - 1 ? 'Finalizar Examen' : 'Siguiente'}
+                </button>
+            </div>
+        `;
+    }
+
+    function checkAnswer(index) {
+        const selected = document.querySelector(`input[name="q${index}"]:checked`);
+        const expBox = document.getElementById('exp-box');
+        expBox.style.display = 'block';
+        
+        if (!selected) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-triangle-exclamation" style="color:#ffc107;"></i> No seleccionaste respuesta.</strong> <br><br> ${questionsData[index].exp}`;
+            return;
+        }
+
+        if (selected.value === questionsData[index].correct) {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-check" style="color:#11caa0;"></i> ¡Correcto!</strong> <br><br> ${questionsData[index].exp}`;
+        } else {
+            expBox.innerHTML = `<strong><i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Incorrecto.</strong> Elegiste la ${selected.value}. <br><br> ${questionsData[index].exp}`;
+        }
+    }
+
+    function nextQ() {
+        if (currentQ < questionsData.length - 1) {
+            currentQ++;
+            renderSlide(currentQ);
+        } else {
+            renderResults();
+        }
+    }
+
+    function prevQ() {
+        if (currentQ > 0) {
+            currentQ--;
+            renderSlide(currentQ);
+        }
+    }
+
+    function startExam() {
+        document.getElementById('slide-welcome').classList.remove('active-slide');
+        document.getElementById('exam-root').classList.add('active-slide');
+        renderSlide(0);
+        startTimer();
+    }
+
+    function renderResults() {
+        document.getElementById('exam-root').classList.remove('active-slide');
+        document.getElementById('slide-results').classList.add('active-slide');
+        clearInterval(timerInterval);
+    }
+
+    function formatTime(seconds) {
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            let display = document.getElementById('time-display');
+            if(display) display.innerText = formatTime(timeLeft);
+            if (timeLeft <= 0) { clearInterval(timerInterval); renderResults(); }
+        }, 1000);
+    }
+
+</script>
+
+<!-- Welcome Slide -->
+<div class="slide-container active-slide full-bg-image" id="slide-welcome" style="background-image: url('https://placehold.co/1280x720/003d68/ffffff?text=Advanced+SAT+Simulator+Vol.+13');">
+    <div class="overlay">
+        <h1>SAT Simulator<br>Vol. 13 (Advanced / 27 Qs)</h1>
+        <p>Hard Difficulty & Multidisciplinary. This module contains 27 BRAND NEW, rigorous questions covering Natural Science, History, Social Science, Economics, and Complex Computer Science architectures. You have 32 minutes.</p>
+        <div>
+            <button class="nav-btn submit" style="font-size: 24px; padding: 15px 40px;" onclick="startExam()">Comenzar Examen <i class="fa-solid fa-play" style="margin-left:10px;"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Exam Root -->
+<div class="slide-container" id="exam-root">
+    <!-- Populated by JS -->
+</div>
+
+<!-- Results Slide -->
+<div class="slide-container full-bg-image" id="slide-results" style="background-image: url('https://placehold.co/1280x720/0f5223/ffffff?text=Module+Completed');">
+    <div class="overlay">
+        <h1 style="font-size: 60px;"><i class="fa-solid fa-flag-checkered"></i> Examen Finalizado</h1>
+        <p style="font-size: 20px;">Has completado las 27 preguntas del simulador Vol. 13 (Nivel Avanzado).</p>
+        <div style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 12px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.3); max-width: 600px;">
+            <h3 style="color:#11caa0; margin-bottom: 10px;">Autoevaluación Avanzada</h3>
+            <p style="font-size: 16px;">¡Tu consistencia es de admirar! Al completar el Volumen 13, has sumado a tu arsenal conceptual la teoría de la destrucción creativa, arquitecturas QEC y los engaños de la contrailuminación biológica. Cuanta más diversidad temática leas en inglés, más preparado estarás para cualquier sorpresa que el College Board ponga en el examen real.</p>
+        </div>
+        <div>
+            <button class="nav-btn" onclick="location.reload()"><i class="fa-solid fa-rotate-right" style="margin-right:10px;"></i> Repetir Simulador</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

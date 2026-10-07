@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator: Module 1 (Reading & Writing Vol. 20)</title>
+    <style>
+        :root { --primary-blue: #004d73; --bg-cream: #f4efe4; --card-white: #ffffff; --timer-green: #34d399; --tag-blue-bg: #d6e4f0; --passage-line: #00b88a; --border-grey: #cccccc; --text-dark: #1a1a1a; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background-color: var(--bg-cream); }
+        .blue-screen { background-color: var(--primary-blue); color: white; position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; padding: 10%; z-index: 100; overflow: hidden; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.05); white-space: nowrap; z-index: 0; pointer-events: none; }
+        .blue-screen-content { z-index: 1; max-width: 800px; }
+        .title-serif { font-family: Georgia, serif; font-size: 4.5rem; font-weight: bold; margin: 0 0 10px 0; line-height: 1.1; }
+        .subtitle-serif { font-family: Georgia, serif; font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; }
+        .description-text { font-size: 1.3rem; line-height: 1.6; margin-bottom: 40px; max-width: 700px; }
+        .btn-start { background-color: var(--timer-green); color: black; font-size: 1.2rem; font-weight: bold; padding: 15px 35px; border: none; border-radius: 30px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.2s; }
+        .btn-start:hover { transform: scale(1.05); }
+        .evaluation-box { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 30px; margin-bottom: 30px; backdrop-filter: blur(5px); }
+        .evaluation-title { color: var(--timer-green); font-weight: bold; font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
+        .score-grid { display: flex; gap: 20px; margin-top: 25px; }
+        .score-item { background: rgba(0,0,0,0.2); padding: 15px 25px; border-radius: 8px; text-align: center; flex: 1; }
+        .score-num { font-size: 2.5rem; font-weight: bold; font-family: Georgia, serif; display: block; }
+        .btn-repeat { background: transparent; color: white; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+        .btn-repeat:hover { text-decoration: underline; }
+        .app-wrapper { display: flex; flex-direction: column; height: 100vh; display: none; }
+        .top-bar { background-color: var(--primary-blue); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .top-bar-title { font-size: 1.15rem; font-weight: 600; }
+        .timer-container { background-color: var(--timer-green); color: black; padding: 5px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; }
+        .sub-header { background-color: var(--bg-cream); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2ddce; flex-shrink: 0; }
+        .question-number { color: var(--primary-blue); font-family: Georgia, serif; font-size: 1.8rem; font-weight: bold; margin: 0; }
+        .question-tag { background-color: var(--tag-blue-bg); color: var(--primary-blue); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .main-container { flex-grow: 1; display: flex; padding: 25px 30px; gap: 25px; overflow-y: auto; color: var(--text-dark); }
+        .card { background-color: var(--card-white); border: 1px solid #e0e0e0; border-radius: 12px; padding: 30px; width: 50%; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .passage-content { border-left: 5px solid var(--passage-line); padding-left: 20px; margin-bottom: 25px; }
+        .passage-text { font-family: Georgia, serif; font-size: 1.1rem; line-height: 1.8; margin: 0; color: #222; }
+        .question-prompt { font-family: -apple-system, sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin: 0; }
+        .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .option-label { display: flex; align-items: center; padding: 15px 20px; border: 1px solid var(--border-grey); border-radius: 6px; cursor: pointer; transition: border-color 0.2s; font-size: 1.05rem; color: #333; }
+        .option-label:hover { border-color: #888; }
+        .option-label input[type="radio"] { margin: 0 15px 0 0; transform: scale(1.2); cursor: pointer; }
+        .option-correct { border-color: #28a745 !important; background-color: #f6fdf8 !important; }
+        .option-incorrect { border-color: #dc3545 !important; background-color: #fff8f8 !important; }
+        .action-buttons { display: flex; gap: 12px; margin-top: auto; }
+        .pill-btn { background-color: var(--tag-blue-bg); color: var(--primary-blue); border: none; padding: 8px 18px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .pill-btn:hover { opacity: 0.8; }
+        .feedback-box { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-size: 1rem; line-height: 1.5; }
+        .hint-box { background-color: #fff3cd; color: #856404; }
+        .explanation-box { background-color: #d4edda; color: #155724; }
+        .footer { background-color: var(--card-white); border-top: 1px solid #e0e0e0; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .nav-btn { padding: 10px 25px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .btn-prev { background-color: transparent; color: #72a1be; border: 1px solid #72a1be; }
+        .btn-prev:hover { opacity: 0.7; }
+        .btn-prev:disabled { opacity: 0.3; cursor: default; }
+        .btn-next { background-color: var(--primary-blue); color: white; border: none; }
+        .btn-next:hover { opacity: 0.9; }
+        @media (max-width: 900px) { .main-container { flex-direction: column; overflow-y: auto; } .card { width: 100%; height: auto; flex-shrink: 0;} }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="blue-screen">
+        <a id="boton-inicio" href="/">🏠︎</a>
+        <div class="watermark">Advanced SAT Simulator</div>
+        <div class="blue-screen-content">
+            <h1 class="title-serif">SAT Simulator</h1>
+            <h2 class="subtitle-serif">Vol. 20 (Advanced / 27 Qs)</h2>
+            <p class="description-text">Hard Difficulty. Features ALL SAT Question Types strictly assessing the core disciplines: Computer Science & Tech, Natural Sciences, Sociology/Economics/Psychology, and History/Anthropology.</p>
+            <button class="btn-start" onclick="startExam()">Comenzar Examen ►</button>
+        </div>
+    </div>
+
+    <div id="app-wrapper" class="app-wrapper">
+        <div class="top-bar">
+            <div class="top-bar-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 20)</div>
+            <div class="timer-container"><span>🕒</span><span id="timer">32:00</span></div>
+        </div>
+        <div class="sub-header">
+            <h2 class="question-number" id="question-number">Question 1</h2>
+            <div class="question-tag" id="question-tag">Tag Here</div>
+        </div>
+        <div class="main-container">
+            <div class="card">
+                <div class="passage-content"><p class="passage-text" id="passage-content"></p></div>
+                <p class="question-prompt" id="question-text"></p>
+            </div>
+            <div class="card">
+                <div class="options" id="options-container"></div>
+                <div class="action-buttons">
+                    <button class="pill-btn" onclick="showHint()">Ver Pista</button>
+                    <button class="pill-btn" onclick="evaluateAnswer()">Evaluar / Ver Explicación</button>
+                </div>
+                <div id="hint-container" class="feedback-box hint-box"></div>
+                <div id="explanation-container" class="feedback-box explanation-box"></div>
+            </div>
+        </div>
+        <div class="footer">
+            <button class="nav-btn btn-prev" id="btn-prev" onclick="prevQuestion()">Anterior</button>
+            <button class="nav-btn btn-next" id="btn-next" onclick="nextQuestion()">Siguiente</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="blue-screen" style="display: none;">
+        <div class="watermark">Module Completed</div>
+        <div class="blue-screen-content">
+            <h2 class="subtitle-serif">🏁 Examen Finalizado</h2>
+            <p class="description-text" style="margin-bottom: 20px;">Has completado las 27 preguntas del simulador Vol. 20.</p>
+            <div class="evaluation-box">
+                <h3 class="evaluation-title">Autoevaluación Avanzada</h3>
+                <div class="score-grid">
+                    <div class="score-item"><span class="score-num" style="color: #34d399;" id="score-correct">0</span>Aciertos</div>
+                    <div class="score-item"><span class="score-num" style="color: #ff6b6b;" id="score-incorrect">0</span>Fallos</div>
+                    <div class="score-item"><span class="score-num" style="color: #cccccc;" id="score-unanswered">0</span>Sin responder</div>
+                </div>
+            </div>
+            <button class="btn-repeat" onclick="location.reload()">↻ Repetir Simulador</button>
+        </div>
+    </div>
+
+    <script>
+        const qData = [
+            { p: "In decentralized distributed ledgers, such as blockchain systems, network nodes must maintain an identical copy of the database. If one node attempts to alter a record maliciously, the consensus algorithm ensures the other nodes will immediately reject the change, thereby ______ the integrity of the entire network.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) undermining", "B) securing", "C) fabricating", "D) bypassing"], c: 1, tag: "Craft & Structure: Words in Context", h: "Al rechazar cambios maliciosos, los nodos protegen o aseguran la red.", e: "B (securing). Al rechazar datos falsos, el sistema asegura (secures) o protege la integridad de la base de datos." },
+            { p: "Unlike traditional broad-spectrum antibiotics that kill both harmful and beneficial bacteria indiscriminately, targeted bacteriophage therapies are highly specific. They destroy only their intended pathogen, leaving the rest of the patient's delicate microbiome entirely ______.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) unscathed", "B) vulnerable", "C) stimulated", "D) dormant"], c: 0, tag: "Craft & Structure: Words in Context", h: "Si son específicos y no matan a las bacterias buenas, el microbioma queda sin daño.", e: "A (unscathed). Ileso o intacto (unscathed); el microbioma no sufre daños colaterales." },
+            { p: "In analyzing rapid social movements, sociologists note that drastic technological change can easily outpace cultural norms. This disconnect often creates a state of 'anomie,' where individuals feel deeply alienated because traditional societal rules are no longer ______ to their modern, digitized daily lives.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) obsolete", "B) applicable", "C) subversive", "D) arbitrary"], c: 1, tag: "Craft & Structure: Words in Context", h: "La gente se siente alienada porque las reglas antiguas ya no se pueden aplicar a su nueva realidad.", e: "B (applicable). Aplicable (applicable); las reglas tradicionales ya no encajan en el entorno moderno." },
+            { p: "The Magna Carta, sealed in 1215, is widely celebrated today as the universal foundation of modern democracy and human rights. However, its original historical intent was far less revolutionary. It was primarily drafted by a group of rebellious, wealthy barons seeking to protect their own feudal estates from King John's exorbitant taxation. It was not designed to grant liberties to the common peasantry, but rather to legally codify the elite status of the nobility.", q: "Which choice best states the main purpose of the text?", o: ["A) To argue that King John was actually a benevolent ruler misunderstood by modern historians.", "B) To clarify the historical reality of a document that is often romantically misrepresented in popular culture.", "C) To explain the specific tax rates applied to the peasantry in 13th-century England.", "D) To persuade readers that modern democracy is a completely flawed system of government."], c: 1, tag: "Information & Ideas: Text Purpose", h: "El texto contrasta la visión moderna ('fundamento de la democracia') con la realidad histórica (protegía a los ricos).", e: "B. El propósito principal es desmitificar la Carta Magna, explicando que originalmente no era un documento democrático universal." },
+            { p: "In machine learning, a 'black box' model refers to an algorithm that makes highly accurate predictions, but its internal decision-making process is so mathematically convoluted that human engineers cannot understand exactly how it reached its conclusions. This lack of transparency is highly problematic in critical fields like criminal justice and healthcare. In these sectors, a model might inadvertently rely on biased, hidden variables to deny someone parole or misdiagnose a patient, leaving human professionals unable to explain or correct the error.", q: "Which choice best describes the central idea of the text?", o: ["A) Black box models are completely useless in modern computer science and should be permanently banned.", "B) The high predictive accuracy of black box models is significantly overshadowed by the dangers of their opaque decision-making in sensitive fields.", "C) Healthcare professionals should completely replace human doctors with advanced machine learning algorithms.", "D) Criminal justice algorithms are inherently less biased and more reliable than human judges."], c: 1, tag: "Information & Ideas: Central Idea", h: "El texto reconoce que son precisos, pero advierte que su opacidad es peligrosa en áreas críticas.", e: "B. La idea central es que, a pesar de su precisión, la falta de transparencia (opacidad) de los modelos de caja negra presenta graves riesgos éticos y prácticos." },
+            { p: "Text 1: The transit method is currently the most successful technique for discovering exoplanets. As a planet passes directly in front of its host star, it causes a tiny, periodic dip in the star's overall brightness. By meticulously measuring this dip, astronomers can determine the planet's exact size and orbital period with incredible precision.\n\nText 2: While the transit method has uncovered thousands of exoplanets, astrophysicists caution that it suffers from a severe observational bias. The method only works if the planet's orbit happens to be perfectly aligned with our line of sight from Earth. Furthermore, it overwhelmingly favors the detection of massive planets orbiting very close to small stars, leaving smaller, Earth-like planets largely undetected.", q: "Based on the texts, what is the relationship between Text 2 and the transit method described in Text 1?", o: ["A) Text 2 highlights the inherent limitations and statistical biases of the observational method praised in Text 1.", "B) Text 2 completely rejects the scientific validity of the measurements mentioned in Text 1.", "C) Text 2 provides the exact mathematical formulas required to execute the transit method described in Text 1.", "D) Text 2 argues that Earth-like planets do not exist, directly confirming the findings in Text 1."], c: 0, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 dice cómo funciona y lo elogia. El Texto 2 dice que tiene sesgos y no detecta planetas como la Tierra.", e: "A. El Texto 2 no invalida el método, pero subraya sus limitaciones y sesgos de observación respecto al Texto 1." },
+            { p: "Classical economic models operate on the assumption that consumers are perfectly rational actors who consistently act to maximize their long-term financial utility. However, the emerging field of behavioral economics argues that consumers frequently make irrational decisions driven by cognitive biases, emotional impulses, and the desire for immediate gratification.", q: "Which hypothetical finding would most directly support the behavioral economists' argument?", o: ["A) A comprehensive study showing that 80% of individuals opt to receive a $50 cash payout today rather than a guaranteed $150 payout in one year, despite the significant mathematical disadvantage.", "B) A survey revealing that most consumers meticulously compare prices across three different stores before purchasing a television.", "C) Data indicating that individuals invest exactly 20% of their monthly income into long-term retirement accounts without fail.", "D) An analysis showing that corporate executives use highly complex mathematical models to maximize shareholder profits."], c: 0, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Busca un ejemplo donde la gente elija algo emocional/inmediato que sea matemáticamente perjudicial (irracional).", e: "A. Elegir $50 hoy sobre $150 en un año es matemáticamente irracional y demuestra la preferencia por la gratificación inmediata, apoyando a la economía conductual." },
+            { p: "Psychological Stress Levels by Commute Time (1-10 Scale)\n\n| Daily Commute Time | Reported Stress Score |\n|--------------------|-----------------------|\n| 0 - 15 minutes     | 2.1                   |\n| 16 - 30 minutes    | 3.5                   |\n| 31 - 60 minutes    | 7.8                   |\n| 60+ minutes        | 8.4                   |\n\nA prominent environmental psychologist hypothesizes that there is a strict 'psychological threshold' regarding daily commuting: commutes under 30 minutes are generally tolerable, but exceeding the half-hour mark triggers a sudden, disproportionately severe psychological burden on workers.", q: "Which data from the table most effectively supports the psychologist's hypothesis?", o: ["A) The stress score more than doubles when the commute time increases from the 16-30 minute bracket to the 31-60 minute bracket.", "B) Workers with a commute of over 60 minutes report the highest stress score of 8.4.", "C) The stress score increases by exactly 1.4 points between the 0-15 minute bracket and the 16-30 minute bracket.", "D) Commutes that take 0-15 minutes result in a very low stress score of 2.1."], c: 0, tag: "Information & Ideas: Command of Evidence (Quantitative)", h: "Busca la evidencia del salto brusco (disproportionately severe) justo después de pasar la marca de los 30 minutos.", e: "A. El salto de 3.5 a 7.8 al cruzar el umbral de los 30 minutos demuestra claramente el aumento desproporcionado teorizado por el psicólogo." },
+            { p: "The indigenous tribes of the Amazon basin utilized the bitter bark of the native cinchona tree to effectively treat fevers for centuries. In the early 17th century, European colonizers observed this local practice, isolated the active chemical—quinine—from the bark, and brought it back to Europe. Quinine subsequently became the world's first effective medical treatment for malaria. This sequence of historical events strongly suggests that...", q: "Which choice most logically completes the text?", o: ["A) 17th-century European medical science was vastly superior to the botanical knowledge of Amazonian tribes.", "B) traditional indigenous knowledge often contained highly effective pharmacological discoveries long before the advent of formal laboratory testing.", "C) the cinchona tree was originally native to Europe and artificially introduced to the Amazon by colonizers.", "D) malaria was completely eradicated worldwide by the end of the 17th century."], c: 1, tag: "Information & Ideas: Inferences", h: "Si los indígenas ya usaban la planta para curar fiebres antes de que los europeos llegaran, su medicina tradicional era efectiva y avanzada empíricamente.", e: "B. Es lógico inferir que el conocimiento botánico tradicional de los indígenas ya había identificado propiedades farmacológicas útiles antes del método científico moderno." },
+            { p: "Unlike languages such as C++ or Java that utilize curly braces to delineate code ______ Python enforces strict indentation rules, ensuring that the visual structure of the program strictly matches its logical execution.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) blocks,", "B) blocks;", "C) blocks", "D) blocks:"], c: 0, tag: "Standard English Conventions: Boundaries", h: "La cláusula dependiente 'Unlike languages... blocks' requiere una coma para separarse de la cláusula independiente principal 'Python enforces...'.", e: "A (blocks,). Una cláusula subordinada o frase preposicional introductoria larga debe estar separada de la cláusula principal por una coma." },
+            { p: "During the grueling construction of the First Transcontinental Railroad in the 1860s, neither the extreme avalanches of the Sierra Nevada mountains nor the constant logistical failures ______ enough to permanently halt the progress of the thousands of immigrant laborers.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) was", "B) were", "C) is", "D) has been"], c: 1, tag: "Standard English Conventions: Form & Structure", h: "En una estructura 'neither X nor Y', el verbo concuerda con el sustantivo más cercano (Y). 'failures' es plural.", e: "B (were). El sujeto más cercano al verbo es 'logistical failures' (plural), y el contexto histórico requiere tiempo pasado." },
+            { p: "Sociologists clearly distinguish between 'absolute poverty,' which involves the severe deprivation of basic human needs like food and safe drinking water, and 'relative poverty,' which is defined purely in relation to the average standard of living in a specific society. ______, an individual classified as statistically poor in a highly developed, wealthy nation might actually possess a higher standard of living than a middle-class citizen in a developing country.", q: "Which choice completes the text with the most logical transition?", o: ["A) Consequently", "B) Furthermore", "C) In contrast", "D) Regardless"], c: 0, tag: "Expression of Ideas: Transitions", h: "La segunda oración es una consecuencia lógica o un resultado directo de la definición de 'pobreza relativa' dada en la primera.", e: "A (Consequently). Consecuentemente; el ejemplo ilustra el resultado directo de medir la pobreza de forma relativa." },
+            { p: "While researching 'Confirmation Bias', a student took the following notes:\n• It is a cognitive bias where individuals favor information that confirms their pre-existing beliefs.\n• People suffering from this bias will actively ignore or discredit empirical evidence that contradicts them.\n• Psychologists note it is highly prevalent in modern political discussions on social media platforms.\n• Because of this bias, presenting someone with purely objective facts rarely changes their mind.", q: "The student wants to explain exactly WHY confirmation bias makes it difficult to change a person's deeply held beliefs. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) Confirmation bias, which is prevalent on social media, causes individuals to favor information that confirms their pre-existing beliefs.", "B) Because confirmation bias drives people to actively ignore or discredit any contradicting evidence, simply presenting them with objective facts rarely changes their minds.", "C) Psychologists have studied confirmation bias and found that it is a cognitive bias where people ignore empirical evidence on social media.", "D) To change someone's deeply held beliefs on social media, you must overcome confirmation bias by using empirical evidence."], c: 1, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es explicar 'POR QUÉ' es difícil cambiar la opinión de alguien con hechos.", e: "B. Conecta directamente la causa (ignorar activamente evidencia contraria) con el efecto (los hechos objetivos no funcionan para cambiar su opinión)." },
+            { p: "In an economic oligopoly, a small handful of massive corporations dominate the entire market landscape. Because these few firms are highly interdependent, a sudden decision by one company to drastically lower its prices will almost certainly force the others to follow suit. This triggers a relentless price war that ultimately ______ profit margins across the entire industry.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) inflates", "B) obliterates", "C) stabilizes", "D) diversifies"], c: 1, tag: "Craft & Structure: Words in Context", h: "Una guerra de precios (bajar los precios para competir) destruirá las ganancias de todos.", e: "B (obliterates). Destruir o aniquilar (obliterate); una guerra de precios recorta y destruye los márgenes de beneficio." },
+            { p: "The invention of radiocarbon dating in the late 1940s fundamentally revolutionized the field of anthropology. Prior to this, archaeologists had to rely exclusively on 'relative dating'—guessing an artifact's age based strictly on the depth of the soil layer it was found in compared to other items. By accurately measuring the decay of Carbon-14 isotopes, scientists could suddenly assign absolute numerical dates to ancient organic materials, radically reshaping the chronological timeline of human history.", q: "Which choice best states the main purpose of the text?", o: ["A) To explain the specific atomic decay rate of the Carbon-14 isotope in ancient organic matter.", "B) To argue that relative dating methods were completely unscientific and useless.", "C) To describe how a specific technological advancement transformed and modernized a scientific discipline.", "D) To outline the specific chronological timeline of early human migration out of Africa."], c: 2, tag: "Information & Ideas: Text Purpose", h: "El texto describe cómo un invento (radiocarbono) cambió para siempre la forma en que los arqueólogos trabajan.", e: "C. El propósito es explicar cómo el radiocarbono (un avance tecnológico) revolucionó la antropología (una disciplina científica)." },
+            { p: "Cryptographers recently developed 'Zero-Knowledge Proofs' (ZKPs), a mathematical breakthrough in data security. ZKPs allow one party to prove to another party that a specific statement is true, without revealing any actual underlying information. For example, a user could mathematically prove they are over 18 years old to a digital platform without ever revealing their actual birthdate, name, or government ID. This technology promises to heavily disrupt online security protocols by eliminating the need to share sensitive personal data with third-party verification servers.", q: "Which choice best describes the central idea of the text?", o: ["A) Zero-Knowledge Proofs enhance digital privacy by allowing the verification of facts without exposing the underlying sensitive data.", "B) Modern digital platforms should immediately stop asking users to prove their age for security reasons.", "C) Cryptography is a highly complex mathematical field that relies on sharing government IDs with third-party servers.", "D) ZKPs are mathematically flawed because they do not require users to reveal their actual birthdates."], c: 0, tag: "Information & Ideas: Central Idea", h: "El texto explica qué hacen los ZKP: verificar que algo es cierto sin mostrar la información original.", e: "A. La idea central resume la función y el beneficio de los ZKP: verificar verdades (como la edad) protegiendo la privacidad de los datos subyacentes." },
+            { p: "Text 1: Proponents of a Universal Basic Income (UBI) argue that providing every citizen with a guaranteed, unconditional monthly cash stipend will effectively eradicate extreme poverty. Furthermore, they assert that this financial safety net will empower workers, giving them the economic leverage required to leave abusive jobs, negotiate better wages, or pursue higher education.\n\nText 2: Critics of UBI maintain that flooding a national economy with unconditional cash will inevitably trigger massive inflation. If every citizen suddenly possesses more disposable income, landlords and corporations will simply raise rent and consumer prices to absorb the extra cash, leaving the working class no better off financially than they were prior to the stipend.", q: "Based on the texts, how would the author of Text 2 most likely respond to the assertions regarding economic empowerment made in Text 1?", o: ["A) By challenging the feasibility of the empowerment, arguing that inflationary price increases will neutralize the benefits of the cash stipend.", "B) By agreeing that UBI will eradicate poverty, but arguing that it will cause a shortage of university spots due to higher education pursuits.", "C) By confirming that landlords will use the extra rent money to improve the living conditions of the working class.", "D) By stating that UBI should only be given to citizens who are actively enrolled in higher education programs."], c: 0, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 dice que el dinero dará poder a la gente. El Texto 2 dice que los precios subirán y anularán el valor del dinero.", e: "A. El Texto 2 argumenta que la inflación absorberá el dinero extra, anulando así el 'empoderamiento económico' prometido en el Texto 1." },
+            { p: "The sudden and catastrophic collapse of the Late Bronze Age civilizations around 1200 BCE involved the simultaneous fall of the Mycenaeans, Hittites, and several other dominant empires. While historians historically blamed mysterious maritime raiders known as the 'Sea Peoples' for invading and burning these coastal cities, modern climatological data suggests a far more systemic primary culprit: a severe, centuries-long mega-drought that triggered cascading agricultural and economic failures.", q: "Which archaeological finding would most strongly support the modern climatological hypothesis?", o: ["A) The discovery of mass graves containing soldiers killed by foreign, maritime weaponry dating exclusively to 1200 BCE.", "B) Analysis of ancient lake sediment cores showing a sudden, massive drop in regional rainfall and crop pollen lasting from 1250 BCE to 1100 BCE.", "C) Deciphered clay tablets from the Hittite capital containing detailed trade agreements with the Sea Peoples.", "D) Architectural evidence showing that coastal cities rapidly built massive defensive walls facing the ocean just before their collapse."], c: 1, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Busca evidencia que pruebe la existencia de una 'mega-sequía' (mega-drought) que arruinó la agricultura.", e: "B. Los núcleos de sedimentos que muestran una caída drástica en las lluvias y en el polen de cultivos (sequía) apoyan directamente la hipótesis climatológica." },
+            { p: "In social psychology, the 'Bystander Effect' famously posits that the greater the number of people who witness an emergency, the less likely any single individual is to intervene, due to a diffusion of responsibility. However, recent large-scale analyses of CCTV footage from real-world urban emergencies show that in over 90% of violent incidents, at least one bystander actively intervenes, and frequently, multiple bystanders collaborate to help the victim. These empirical real-world findings strongly suggest that...", q: "Which choice most logically completes the text?", o: ["A) CCTV cameras inherently force people to act more heroically than they normally would.", "B) the traditional theoretical framework of the Bystander Effect may have significantly overestimated human apathy in actual, high-stakes emergencies.", "C) emergencies in urban settings are mathematically less dangerous than emergencies in rural settings.", "D) the diffusion of responsibility only occurs when victims are completely alone with the attacker."], c: 1, tag: "Information & Ideas: Inferences", h: "Si la teoría decía que nadie ayuda, pero los videos reales muestran que casi siempre ayudan, la teoría clásica exageró la falta de empatía humana.", e: "B. Es lógico inferir que la teoría original subestimó la voluntad de las personas de ayudar (y sobrestimó la apatía) en situaciones reales." },
+            { p: "The human adaptive immune system possesses highly specialized 'memory' B cells that patrol the bloodstream for decades after an initial viral infection. If the exact same pathogen attempts to enter the body ______ these memory cells immediately trigger a massive, targeted antibody response before the individual even begins to exhibit physical symptoms.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) again,", "B) again;", "C) again", "D) again:"], c: 0, tag: "Standard English Conventions: Boundaries", h: "La cláusula condicional introductoria 'If the exact same pathogen attempts to enter the body again' debe separarse de la principal con una coma.", e: "A (again,). Una cláusula dependiente al inicio de la oración (cláusula 'If') siempre requiere una coma antes de la cláusula independiente." },
+            { p: "The massive array of interconnected servers housed within the tech giant's new subterranean data center ______ currently capable of processing and storing over ten billion micro-transactions per second.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) is", "B) are", "C) have been", "D) were"], c: 0, tag: "Standard English Conventions: Form & Structure", h: "El sujeto principal es 'The massive array' (singular). Todo lo demás ('of interconnected servers...') es un modificador preposicional.", e: "A (is). El sujeto 'array' es singular, por lo que el verbo debe estar en tercera persona del singular." },
+            { p: "Over two billion years ago, Cyanobacteria were the very first organisms to perform oxygenic photosynthesis, releasing massive amounts of toxic oxygen gas into Earth's early, methane-rich atmosphere. ______, this 'Great Oxidation Event' proved utterly fatal to almost all existing anaerobic lifeforms, triggering one of the first and most severe mass extinctions in planetary history.", q: "Which choice completes the text with the most logical transition?", o: ["A) Consequently", "B) Nevertheless", "C) Similarly", "D) Instead"], c: 0, tag: "Expression of Ideas: Transitions", h: "La segunda oración describe el resultado o efecto directo de la liberación de oxígeno mencionada en la primera.", e: "A (Consequently). Consecuentemente; la extinción masiva fue el resultado directo de la oxigenación de la atmósfera." },
+            { p: "While researching 'Gresham's Law', a student took the following notes:\n• It is a foundational economic principle stating that 'bad money drives out good.'\n• It occurs when a country circulates two forms of currency with the same face value but different intrinsic values.\n• For example, if a government mints cheap copper coins and highly valuable silver coins, both worth 'one dollar.'\n• Citizens will naturally hoard the valuable silver coins and only spend the cheap copper ones in daily commerce.\n• Eventually, the intrinsically valuable coins disappear from public circulation entirely.", q: "The student wants to clearly explain the mechanism by which Gresham's Law operates in a society. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) Gresham's Law is an economic principle from history that involves silver and copper coins sharing the exact same face value.", "B) According to Gresham's Law, when currencies of equal face value but different intrinsic values circulate together, people will hoard the intrinsically valuable currency and only spend the cheaper one.", "C) If a government decides to mint both copper and silver coins, citizens will quickly realize that 'bad money drives out good' and stop spending money.", "D) The economic principle known as Gresham's Law states that valuable silver coins will eventually disappear from public circulation entirely."], c: 1, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es explicar EL MECANISMO (cómo funciona: la gente guarda la moneda buena y gasta la mala).", e: "B. Explica perfectamente el mecanismo: al haber dos valores intrínsecos, la gente atesora el valioso y gasta el barato." },
+            { p: "The decipherment of Sumerian cuneiform in the mid-19th century revealed that ancient Mesopotamian societies possessed highly sophisticated legal and economic frameworks. Far from being primitive, these early civilizations maintained meticulous, mathematical records of grain transactions, debt, and property deeds, thereby ______ the colonial stereotype of ancient peoples as unorganized and intellectually deficient.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) propagating", "B) shattering", "C) synthesizing", "D) reinforcing"], c: 1, tag: "Craft & Structure: Words in Context", h: "Si demostraron ser muy sofisticados, destruyeron el falso estereotipo de que eran primitivos.", e: "B (shattering). Hacer añicos o destruir (shatter) un estereotipo o creencia falsa." },
+            { p: "In the early 20th century, Ivan Pavlov's classical conditioning experiments with dogs famously demonstrated that involuntary physiological responses, such as salivation, could be triggered by a previously neutral stimulus, like a metronome, if the two were repeatedly paired. This empirical discovery profoundly shifted the entire discipline of psychology away from subjective, philosophical introspection and firmly toward the study of observable, measurable behavior.", q: "Which choice best states the main purpose of the text?", o: ["A) To argue that modern psychology should return to philosophical introspection.", "B) To describe how a specific experimental finding fundamentally altered the methodological trajectory of a scientific field.", "C) To explain the exact biological mechanisms behind a dog's salivary glands.", "D) To prove that animals are completely incapable of experiencing subjective emotions."], c: 1, tag: "Information & Ideas: Text Purpose", h: "El texto dice que el descubrimiento de Pavlov cambió la psicología de ser algo filosófico a ser algo medible.", e: "B. El propósito es mostrar cómo un experimento específico (perros de Pavlov) cambió la metodología de toda una disciplina (la psicología)." },
+            { p: "In enterprise network security, a 'honeypot' is a purposefully vulnerable computer system set up as a decoy to attract cyberattackers. It contains simulated data and has no legitimate authorized users. Because the system serves absolutely no genuine business purpose, network administrators can confidently assume that any attempt to connect to or log into the honeypot is strictly unauthorized. Therefore, when the system logs an incoming connection attempt, security teams can logically deduce that...", q: "Which choice most logically completes the text?", o: ["A) the connection is malicious in nature and the broader network is actively being probed by a threat actor.", "B) an authorized employee simply forgot their password and is trying to access corporate files.", "C) the honeypot software has malfunctioned and requires a system reboot.", "D) the cyberattackers have successfully bypassed all firewalls and stolen legitimate customer data."], c: 0, tag: "Information & Ideas: Inferences", h: "Si nadie legítimo usa el honeypot, cualquiera que entre es, por definición, un atacante.", e: "A. Si no hay usuarios legítimos para ese sistema, es lógico inferir que cualquier intento de conexión es un atacante escaneando o atacando la red." },
+            { p: "The sociological phenomenon of 'social mobility' measures the ability of an individual or family to move up or down the socioeconomic ladder within a given society. Studies consistently show that in nations with high degrees of income ______ children born into severe poverty have a significantly higher statistical probability of reaching the middle class during their lifetimes.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) equality,", "B) equality;", "C) equality", "D) equality:"], c: 0, tag: "Standard English Conventions: Boundaries", h: "La frase preposicional introductoria larga ('...in nations with high degrees of income equality') requiere una coma antes del sujeto principal ('children').", e: "A (equality,). Una frase preposicional introductoria debe separarse de la cláusula principal con una coma." }
+        ];
+
+        let currentIndex = 0;
+        let selectedAnswers = new Array(qData.length).fill(null);
+        let timerInterval;
+
+        function startExam() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('app-wrapper').style.display = 'flex';
+            let timeRemaining = 32 * 60;
+            timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) { finishExam(); return; }
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+                const s = (timeRemaining % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = m + ':' + s;
+            }, 1000);
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = qData[currentIndex];
+            document.getElementById('passage-content').innerText = q.p;
+            document.getElementById('question-number').innerText = `Question ${currentIndex + 1}`;
+            document.getElementById('question-tag').innerText = q.tag;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            q.o.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.className = 'option-label';
+                label.id = `opt-label-${idx}`;
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'sat-option';
+                input.value = idx;
+                if (selectedAnswers[currentIndex] === idx) input.checked = true;
+                input.onchange = () => { selectedAnswers[currentIndex] = idx; };
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(opt));
+                optionsContainer.appendChild(label);
+            });
+            
+            document.getElementById('hint-container').style.display = 'none';
+            document.getElementById('explanation-container').style.display = 'none';
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            
+            if (currentIndex === qData.length - 1) {
+                document.getElementById('btn-next').innerText = "Finalizar Examen";
+            } else {
+                document.getElementById('btn-next').innerText = "Siguiente";
+            }
+        }
+
+        function prevQuestion() { if (currentIndex > 0) { currentIndex--; renderQuestion(); } }
+        function nextQuestion() { if (currentIndex < qData.length - 1) { currentIndex++; renderQuestion(); } else { finishExam(); } }
+
+        function showHint() {
+            const hintBox = document.getElementById('hint-container');
+            hintBox.innerHTML = "<strong>Pista:</strong> " + qData[currentIndex].h;
+            hintBox.style.display = 'block';
+        }
+
+        function evaluateAnswer() {
+            const selected = selectedAnswers[currentIndex];
+            if (selected === null) { alert("Por favor, selecciona una respuesta antes de evaluar."); return; }
+            const q = qData[currentIndex];
+            const explanationBox = document.getElementById('explanation-container');
+            explanationBox.innerHTML = "<strong>Explicación:</strong> " + q.e;
+            explanationBox.style.display = 'block';
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`opt-label-${i}`);
+                if (el) el.classList.remove('option-correct', 'option-incorrect');
+            }
+            const correctEl = document.getElementById(`opt-label-${q.c}`);
+            if (correctEl) correctEl.classList.add('option-correct');
+            if (selected !== q.c) {
+                const selectedEl = document.getElementById(`opt-label-${selected}`);
+                if (selectedEl) selectedEl.classList.add('option-incorrect');
+            }
+        }
+
+        function finishExam() {
+            clearInterval(timerInterval);
+            document.getElementById('app-wrapper').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'flex';
+            let correct = 0, incorrect = 0, unanswered = 0;
+            for (let i = 0; i < qData.length; i++) {
+                if (selectedAnswers[i] === null) { unanswered++; }
+                else if (selectedAnswers[i] === qData[i].c) { correct++; }
+                else { incorrect++; }
+            }
+            document.getElementById('score-correct').innerText = correct;
+            document.getElementById('score-incorrect').innerText = incorrect;
+            document.getElementById('score-unanswered').innerText = unanswered;
+        }
+    </script>
+</body>
+</html>

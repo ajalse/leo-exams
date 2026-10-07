@@ -1,0 +1,59 @@
+body {
+    background-color: #004d73;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+a {
+    color: #00c8ff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.examen-realizado {
+    color: #ffd700;
+}
+
+.examen-deshabilitado {
+    color: #aaaaaa;
+}
+
+#boton-configurar {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    opacity: 0; /* invisible */
+}
+
+.contenedor-columnas {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+}
+
+.columna {
+    width: 45%;
+}
+
+li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#boton-inicio {
+    text-decoration: none;
+    color: #2563EB;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+    opacity: 1; 
+}
+

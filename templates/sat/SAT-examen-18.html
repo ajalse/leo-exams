@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAT Digital Simulator: Module 1 (Reading & Writing Vol. 25)</title>
+    <style>
+        :root { --primary-blue: #004d73; --bg-cream: #f4efe4; --card-white: #ffffff; --timer-green: #34d399; --tag-blue-bg: #d6e4f0; --passage-line: #00b88a; --border-grey: #cccccc; --text-dark: #1a1a1a; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; background-color: var(--bg-cream); }
+        .blue-screen { background-color: var(--primary-blue); color: white; position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; padding: 10%; z-index: 100; overflow: hidden; }
+        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; font-weight: bold; color: rgba(255, 255, 255, 0.05); white-space: nowrap; z-index: 0; pointer-events: none; }
+        .blue-screen-content { z-index: 1; max-width: 800px; }
+        .title-serif { font-family: Georgia, serif; font-size: 4.5rem; font-weight: bold; margin: 0 0 10px 0; line-height: 1.1; }
+        .subtitle-serif { font-family: Georgia, serif; font-size: 3.5rem; font-weight: bold; margin: 0 0 30px 0; }
+        .description-text { font-size: 1.3rem; line-height: 1.6; margin-bottom: 40px; max-width: 700px; }
+        .btn-start { background-color: var(--timer-green); color: black; font-size: 1.2rem; font-weight: bold; padding: 15px 35px; border: none; border-radius: 30px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.2s; }
+        .btn-start:hover { transform: scale(1.05); }
+        .evaluation-box { background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 30px; margin-bottom: 30px; backdrop-filter: blur(5px); }
+        .evaluation-title { color: var(--timer-green); font-weight: bold; font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; }
+        .score-grid { display: flex; gap: 20px; margin-top: 25px; }
+        .score-item { background: rgba(0,0,0,0.2); padding: 15px 25px; border-radius: 8px; text-align: center; flex: 1; }
+        .score-num { font-size: 2.5rem; font-weight: bold; font-family: Georgia, serif; display: block; }
+        .btn-repeat { background: transparent; color: white; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; }
+        .btn-repeat:hover { text-decoration: underline; }
+        .app-wrapper { display: flex; flex-direction: column; height: 100vh; display: none; }
+        .top-bar { background-color: var(--primary-blue); color: white; padding: 12px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .top-bar-title { font-size: 1.15rem; font-weight: 600; }
+        .timer-container { background-color: var(--timer-green); color: black; padding: 5px 15px; border-radius: 20px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.2rem; }
+        .sub-header { background-color: var(--bg-cream); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2ddce; flex-shrink: 0; }
+        .question-number { color: var(--primary-blue); font-family: Georgia, serif; font-size: 1.8rem; font-weight: bold; margin: 0; }
+        .question-tag { background-color: var(--tag-blue-bg); color: var(--primary-blue); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; }
+        .main-container { flex-grow: 1; display: flex; padding: 25px 30px; gap: 25px; overflow-y: auto; color: var(--text-dark); }
+        .card { background-color: var(--card-white); border: 1px solid #e0e0e0; border-radius: 12px; padding: 30px; width: 50%; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .passage-content { border-left: 5px solid var(--passage-line); padding-left: 20px; margin-bottom: 25px; }
+        .passage-text { font-family: Georgia, serif; font-size: 1.1rem; line-height: 1.8; margin: 0; color: #222; }
+        .question-prompt { font-family: -apple-system, sans-serif; font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin: 0; }
+        .options { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .option-label { display: flex; align-items: center; padding: 15px 20px; border: 1px solid var(--border-grey); border-radius: 6px; cursor: pointer; transition: border-color 0.2s; font-size: 1.05rem; color: #333; }
+        .option-label:hover { border-color: #888; }
+        .option-label input[type="radio"] { margin: 0 15px 0 0; transform: scale(1.2); cursor: pointer; }
+        .option-correct { border-color: #28a745 !important; background-color: #f6fdf8 !important; }
+        .option-incorrect { border-color: #dc3545 !important; background-color: #fff8f8 !important; }
+        .action-buttons { display: flex; gap: 12px; margin-top: auto; }
+        .pill-btn { background-color: var(--tag-blue-bg); color: var(--primary-blue); border: none; padding: 8px 18px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .pill-btn:hover { opacity: 0.8; }
+        .feedback-box { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; font-size: 1rem; line-height: 1.5; }
+        .hint-box { background-color: #fff3cd; color: #856404; }
+        .explanation-box { background-color: #d4edda; color: #155724; }
+        .footer { background-color: var(--card-white); border-top: 1px solid #e0e0e0; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .nav-btn { padding: 10px 25px; border-radius: 25px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .btn-prev { background-color: transparent; color: #72a1be; border: 1px solid #72a1be; }
+        .btn-prev:hover { opacity: 0.7; }
+        .btn-prev:disabled { opacity: 0.3; cursor: default; }
+        .btn-next { background-color: var(--primary-blue); color: white; border: none; }
+        .btn-next:hover { opacity: 0.9; }
+        @media (max-width: 900px) { .main-container { flex-direction: column; overflow-y: auto; } .card { width: 100%; height: auto; flex-shrink: 0;} }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen" class="blue-screen">
+        <a id="boton-inicio" href="/">🏠︎</a>
+        <div class="watermark">Advanced SAT Simulator</div>
+        <div class="blue-screen-content">
+            <h1 class="title-serif">SAT Simulator</h1>
+            <h2 class="subtitle-serif">Vol. 25 (Advanced / 27 Qs)</h2>
+            <p class="description-text">Hard Difficulty. Features ALL SAT Question Types across CS, NatSci, Sociology, and History. Includes integrated interactive graphics for quantitative data analysis.</p>
+            <button class="btn-start" onclick="startExam()">Comenzar Examen ►</button>
+        </div>
+    </div>
+
+    <div id="app-wrapper" class="app-wrapper">
+        <div class="top-bar">
+            <div class="top-bar-title">SAT Digital Simulator: Module 1 (Reading & Writing Vol. 25)</div>
+            <div class="timer-container"><span>🕒</span><span id="timer">32:00</span></div>
+        </div>
+        <div class="sub-header">
+            <h2 class="question-number" id="question-number">Question 1</h2>
+            <div class="question-tag" id="question-tag">Tag Here</div>
+        </div>
+        <div class="main-container">
+            <div class="card">
+                <div class="passage-content"><p class="passage-text" id="passage-content"></p></div>
+                <p class="question-prompt" id="question-text"></p>
+            </div>
+            <div class="card">
+                <div class="options" id="options-container"></div>
+                <div class="action-buttons">
+                    <button class="pill-btn" onclick="showHint()">Ver Pista</button>
+                    <button class="pill-btn" onclick="evaluateAnswer()">Evaluar / Ver Explicación</button>
+                </div>
+                <div id="hint-container" class="feedback-box hint-box"></div>
+                <div id="explanation-container" class="feedback-box explanation-box"></div>
+            </div>
+        </div>
+        <div class="footer">
+            <button class="nav-btn btn-prev" id="btn-prev" onclick="prevQuestion()">Anterior</button>
+            <button class="nav-btn btn-next" id="btn-next" onclick="nextQuestion()">Siguiente</button>
+        </div>
+    </div>
+
+    <div id="end-screen" class="blue-screen" style="display: none;">
+        <div class="watermark">Module Completed</div>
+        <div class="blue-screen-content">
+            <h2 class="subtitle-serif">🏁 Examen Finalizado</h2>
+            <p class="description-text" style="margin-bottom: 20px;">Has completado las 27 preguntas del simulador Vol. 25.</p>
+            <div class="evaluation-box">
+                <h3 class="evaluation-title">Autoevaluación Avanzada</h3>
+                <div class="score-grid">
+                    <div class="score-item"><span class="score-num" style="color: #34d399;" id="score-correct">0</span>Aciertos</div>
+                    <div class="score-item"><span class="score-num" style="color: #ff6b6b;" id="score-incorrect">0</span>Fallos</div>
+                    <div class="score-item"><span class="score-num" style="color: #cccccc;" id="score-unanswered">0</span>Sin responder</div>
+                </div>
+            </div>
+            <button class="btn-repeat" onclick="location.reload()">↻ Repetir Simulador</button>
+        </div>
+    </div>
+
+    <script>
+        const qData = [
+            // 1-4: Craft & Structure: Words in Context
+            { p: "In modern cybersecurity, a 'Zero Trust' architecture operates under the strict assumption that no node on a network is inherently safe, regardless of its origin. By requiring continuous authentication for every single data request, this paradigm effectively ______ the devastating impact of internal lateral movements by hackers.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) augments", "B) initiates", "C) mitigates", "D) fabricates"], c: 2, tag: "Craft & Structure: Words in Context", h: "Si el sistema asume que nadie es seguro, está intentando reducir o frenar el impacto de un ataque interno.", e: "C (mitigates). Mitigar (mitigate) significa reducir la gravedad, el daño o el riesgo de algo." },
+            { p: "Discovered in 1974, the Terracotta Army consists of over 8,000 life-sized clay soldiers buried alongside Qin Shi Huang, the first Emperor of China. The staggering scale and meticulous logistical coordination required to construct this silent, subterranean military force clearly ______ the emperor's profound obsession with achieving immortality.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) obscure", "B) underscore", "C) contradict", "D) pacify"], c: 1, tag: "Craft & Structure: Words in Context", h: "La inmensa escala del proyecto subraya, enfatiza o resalta su obsesión.", e: "B (underscore). Subrayar o enfatizar (underscore); la escala de la tumba pone de relieve su obsesión." },
+            { p: "The concept of the 'Panopticon,' originally a prison design by Jeremy Bentham, has been adapted by modern sociologists to describe digital surveillance. In a Panopticon, inmates cannot know exactly when they are being watched, so they must assume they are always being watched. Similarly, the invisible tracking of online behavior ______ a psychological state of perpetual self-censorship among internet users.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) cultivates", "B) eradicates", "C) simulates", "D) overrides"], c: 0, tag: "Craft & Structure: Words in Context", h: "Si la gente siente que siempre la vigilan, el sistema fomenta o crea un estado de autocensura.", e: "A (cultivates). Cultivar o fomentar (cultivate) el desarrollo de una mentalidad o estado psicológico." },
+            { p: "Traditional evolutionary theory models the transfer of genetic information as a strictly vertical process, moving from parent to offspring. However, the discovery of horizontal gene transfer—where bacteria directly share plasmids carrying antibiotic resistance genes with entirely unrelated species—fundamentally ______ this classical Darwinian narrative.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) preserves", "B) subverts", "C) categorizes", "D) emulates"], c: 1, tag: "Craft & Structure: Words in Context", h: "Si la transferencia de genes ocurre de forma horizontal entre especies distintas, rompe o socava la regla vertical tradicional.", e: "B (subverts). Subvertir (subvert) significa socavar o alterar radicalmente un principio o sistema establecido." },
+            
+            // 5-6: Information & Ideas: Text Purpose / Central Idea
+            { p: "In software engineering, synchronous programming forces tasks to be executed one at a time. If a program needs to download a large file from the internet, a synchronous application will completely freeze, blocking the user from clicking any buttons until the download finishes. Asynchronous programming solves this by allowing the download task to run in the background. While the file downloads, the main thread remains free, allowing the application's user interface to remain responsive and fluid. This paradigm is virtually mandatory for modern web development.", q: "Which choice best states the main purpose of the text?", o: ["A) To explain why synchronous programming is mathematically superior to asynchronous programming.", "B) To describe how asynchronous programming prevents user interface freezing by running tasks in the background.", "C) To warn developers about the severe security risks associated with downloading large files.", "D) To provide a historical overview of how early web browsers managed network latency."], c: 1, tag: "Information & Ideas: Text Purpose", h: "El texto contrasta dos métodos y explica cómo el asíncrono evita que la aplicación se congele.", e: "B. El propósito principal es explicar la ventaja fundamental de la programación asíncrona: mantener la interfaz receptiva ejecutando tareas en segundo plano." },
+            { p: "Located in modern-day Louisiana, Poverty Point is a massive complex of concentric earthen ridges built over 3,000 years ago. For decades, anthropologists assumed that building monumental earthworks required the strict social hierarchy and surplus food supply provided exclusively by settled agriculture. However, archaeological evidence decisively proves that the builders of Poverty Point were nomadic hunter-gatherers. They relied on the rich aquatic resources of the Mississippi River rather than farmed crops, sustaining a massive labor force without ever planting a single seed.", q: "Which choice best describes the central idea of the text?", o: ["A) Poverty Point was built by agricultural societies that migrated from Mesoamerica to Louisiana.", "B) The massive earthworks at Poverty Point demonstrate that complex, monumental construction does not strictly require an agricultural society.", "C) Nomadic hunter-gatherers frequently destroyed monumental architecture to clear land for hunting.", "D) Poverty Point was primarily used as an agricultural trading hub for ancient North American tribes."], c: 1, tag: "Information & Ideas: Central Idea", h: "El texto dice que los cazadores-recolectores construyeron monumentos sin necesitar agricultura.", e: "B. La idea central es que el hallazgo de Poverty Point refuta la teoría de que solo las sociedades agrícolas pueden construir arquitectura monumental." },
+
+            // 7-8: Information & Ideas: Cross-Text Connections
+            { p: "Text 1: Dark matter is theorized to constitute roughly 85% of the universe's mass. Astrophysicists rely on the 'WIMP' (Weakly Interacting Massive Particle) hypothesis to explain it. According to this model, dark matter consists of heavy, invisible particles that exert a massive gravitational pull on galaxies, preventing their rapidly spinning outer stars from flying off into deep space.\n\nText 2: MOND (Modified Newtonian Dynamics) offers an alternative to the dark matter hypothesis. MOND proponents argue that we do not need to invent invisible, undetectable particles to explain the rotational speeds of galaxies. Instead, they suggest that our fundamental understanding of gravity is flawed. According to MOND, Newton's laws of gravity simply behave differently when gravitational acceleration drops to extremely low levels, as it does at the outer edges of galaxies.", q: "Based on the texts, how would the author of Text 2 most likely respond to the 'WIMP' hypothesis presented in Text 1?", o: ["A) By agreeing that WIMPs are the only logical explanation for the high rotational speeds of galaxies.", "B) By suggesting that WIMPs are actually composed of ordinary, visible matter rather than dark matter.", "C) By arguing that the WIMP hypothesis is unnecessary because the gravitational anomalies can be explained by modifying existing physical laws.", "D) By asserting that Newton's laws of gravity apply perfectly everywhere in the universe without exception."], c: 2, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 usa WIMPs (partículas invisibles) para explicar la gravedad anómala. El Texto 2 dice que no hacen falta partículas si modificamos la ley de la gravedad.", e: "C. MOND rechaza la necesidad de inventar partículas invisibles (WIMPs), argumentando que las anomalías se resuelven modificando las leyes de gravedad existentes." },
+            { p: "Text 1: In 2021, El Salvador became the first country to adopt Bitcoin as legal tender. Proponents championed the move as a brilliant leap toward financial inclusion. In a country where over 70% of the population lacked traditional bank accounts, digital wallets allowed citizens to easily receive international remittances from relatives abroad without paying exorbitant fees to wire transfer corporations.\n\nText 2: While digital currencies promise frictionless transfers, forcing a developing nation to rely on a highly speculative cryptocurrency as legal tender is economically reckless. Bitcoin's extreme price volatility means that a working-class family's digital savings could lose 30% of their purchasing power overnight. A national currency must function as a stable store of value; a hyper-volatile digital asset simply cannot fulfill this foundational economic requirement.", q: "Based on the texts, how would the author of Text 2 most likely respond to the optimism regarding 'financial inclusion' in Text 1?", o: ["A) By acknowledging the ease of transfers, but arguing that the devastating volatility of the asset makes it far too dangerous for working-class savings.", "B) By denying that El Salvador ever adopted cryptocurrency as legal tender in 2021.", "C) By agreeing that avoiding wire transfer fees guarantees long-term financial stability for developing nations.", "D) By suggesting that traditional banks should immediately adopt Bitcoin to stabilize their own currency reserves."], c: 0, tag: "Information & Ideas: Cross-Text Connections", h: "El Texto 1 elogia la inclusión. El Texto 2 dice que la volatilidad destruye los ahorros. Así que el autor 2 vería el beneficio ensombrecido por el riesgo.", e: "A. El autor del Texto 2 argumenta que la volatilidad extrema (perder 30% del valor) arruina los beneficios teóricos de la inclusión financiera para la clase trabajadora." },
+
+            // 9: Information & Ideas: Command of Evidence (Quantitative) WITH SVG
+            { p: `A software engineering firm was experiencing frequent system crashes during periods of peak user traffic. To solve this, they transitioned their backend from a 'Monolithic Architecture' (where all functions run on one large server) to a 'Microservices Architecture' (where functions are split across many small, scalable servers). Researchers measured the server latency—the delay before a transfer of data begins—under different user loads to evaluate the upgrade.
+            <div style="text-align:center; margin: 25px 0;">
+                <svg width="100%" height="220" viewBox="0 0 500 220" style="background:#fff; border:1px solid #ccc; font-family:sans-serif; border-radius:8px;">
+                    <text x="250" y="25" text-anchor="middle" font-weight="bold" fill="#333">Server Latency Under User Load</text>
+                    
+                    <!-- Ejes -->
+                    <line x1="50" y1="160" x2="450" y2="160" stroke="#666" stroke-width="2"/>
+                    <line x1="50" y1="40" x2="50" y2="160" stroke="#666" stroke-width="2"/>
+                    
+                    <!-- Etiquetas X -->
+                    <text x="150" y="180" text-anchor="middle" font-size="13" fill="#333">10,000 Users</text>
+                    <text x="350" y="180" text-anchor="middle" font-size="13" fill="#333">50,000 Users (Peak)</text>
+                    
+                    <!-- Barras 10k Users -->
+                    <rect x="110" y="120" width="30" height="40" fill="#ff6b6b"/>
+                    <text x="125" y="115" text-anchor="middle" font-size="12" font-weight="bold">40 ms</text>
+                    
+                    <rect x="160" y="125" width="30" height="35" fill="#34d399"/>
+                    <text x="175" y="120" text-anchor="middle" font-size="12" font-weight="bold">35 ms</text>
+                    
+                    <!-- Barras 50k Users -->
+                    <rect x="310" y="40" width="30" height="120" fill="#ff6b6b"/>
+                    <text x="325" y="35" text-anchor="middle" font-size="12" font-weight="bold">320 ms</text>
+                    
+                    <rect x="360" y="110" width="30" height="50" fill="#34d399"/>
+                    <text x="375" y="105" text-anchor="middle" font-size="12" font-weight="bold">50 ms</text>
+                    
+                    <!-- Leyenda -->
+                    <rect x="170" y="200" width="12" height="12" fill="#ff6b6b"/>
+                    <text x="190" y="210" font-size="12" fill="#333">Monolithic</text>
+                    
+                    <rect x="270" y="200" width="12" height="12" fill="#34d399"/>
+                    <text x="290" y="210" font-size="12" fill="#333">Microservices</text>
+                </svg>
+            </div>`, q: "Which statement is best supported by the data in the chart?", o: ["A) Monolithic architectures process data faster than microservices architectures under all traffic conditions.", "B) At 10,000 users, both architectures performed similarly, but microservices prevented a massive latency spike at 50,000 users.", "C) Transitioning to microservices caused latency to increase from 40 ms to 320 ms during peak traffic.", "D) The microservices architecture completely eliminated all latency, achieving a response time of 0 ms at peak load."], c: 1, tag: "Information & Ideas: Command of Evidence (Quantitative)", h: "Fíjate en las barras a 10.000 (muy parecidas) y a 50.000 (Monolithic se dispara a 320ms, Microservices se mantiene en 50ms).", e: "B. El gráfico muestra que a 10,000 usuarios ambos rondan los 35-40 ms, pero a 50,000 usuarios el monolítico sufre un pico de 320 ms, mientras que el microservicio se mantiene estable en 50 ms." },
+            
+            // 10-11: Information & Ideas: Command of Evidence (Textual)
+            { p: "In ecology, a 'keystone species' is an organism that helps hold an entire ecosystem together. Sea otters in the Pacific Northwest are a classic example. They actively hunt sea urchins, keeping the urchin population in check. Without sea otters, researchers hypothesize that the sea urchins would reproduce uncontrollably and completely devour the underwater kelp forests, leading to a catastrophic collapse of the local marine food web.", q: "Which finding would most directly support the researchers' hypothesis regarding sea otters?", o: ["A) In areas where sea otters were hunted to near extinction, dense kelp forests vanished entirely, leaving behind barren 'urchin barrens'.", "B) Sea urchins typically prefer to eat marine algae rather than fully grown kelp fronds.", "C) In regions with high sea otter populations, the number of great white sharks significantly increased.", "D) Sea otters rely on thick fur rather than a layer of blubber to maintain their body temperature in freezing waters."], c: 0, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Si la teoría es que 'sin nutrias, los erizos se comen todo el bosque de algas', busca un lugar sin nutrias donde esto haya pasado.", e: "A. Si en las áreas donde las nutrias desaparecieron los bosques de algas también desaparecieron (reemplazados por erizos), se confirma directamente la hipótesis de que las nutrias protegen el bosque." },
+            { p: "The 'Digital Divide' traditionally refers to the gap between demographics that have access to modern information technology and those that do not. In the early 2000s, many NGOs attempted to bridge this gap simply by donating laptops to schools in developing nations. Sociologist Dr. Amina Diallo argued that this hardware-centric approach was fundamentally flawed, asserting that providing physical devices yields no educational improvement without preexisting, reliable internet infrastructure.", q: "Which finding from a follow-up study on the NGO initiative would most strongly support Dr. Diallo’s argument?", o: ["A) Students who received laptops used them primarily to write essays using offline word processing software.", "B) Schools that received laptops but lacked broadband internet connections saw zero improvement in standardized test scores after two years.", "C) Teachers in developing nations overwhelmingly requested desktop computers rather than laptops due to durability concerns.", "D) The donated laptops were manufactured using environmentally sustainable materials and solar-powered batteries."], c: 1, tag: "Information & Ideas: Command of Evidence (Textual)", h: "La teoría de Diallo es que dar ordenadores no sirve de nada si no hay internet (infraestructura).", e: "B. Esta opción prueba que la falta de infraestructura de internet (sin banda ancha) anuló por completo el beneficio educativo de los dispositivos físicos, apoyando la crítica de Diallo." },
+
+            // 12-14: Information & Ideas: Inferences
+            { p: "In 1952, Michael Ventris successfully deciphered Linear B, an ancient script found on clay tablets in Crete and mainland Greece. Previously, historians assumed the script belonged to a distinct, non-Greek Minoan language. Ventris, however, applied cryptographic grid analysis and proved that Linear B was actually an archaic, syllabic form of Greek. Because the tablets in Crete date back to 1450 BCE—long before historians believed mainland Greeks had conquered the island—it can reasonably be inferred that...", q: "Which choice most logically completes the text?", o: ["A) the Minoan civilization never actually existed and was a complete fabrication by early archaeologists.", "B) mainland Mycenaean Greeks had established a dominant administrative presence on Crete much earlier than the traditional historical timeline suggested.", "C) Michael Ventris utilized modern computer algorithms to crack the ancient cryptographic code.", "D) Linear B is the direct linguistic ancestor of modern Egyptian demotic scripts."], c: 1, tag: "Information & Ideas: Inferences", h: "Si la escritura es griega y se usaba en Creta en 1450 a.C., los griegos ya debían estar gobernando allí en esa época.", e: "B. Es lógico inferir que la presencia del idioma griego (Linear B) en registros administrativos de Creta implica que los griegos micénicos ya controlaban la isla en 1450 a.C." },
+            { p: "The immortal jellyfish (*Turritopsis dohrnii*) possesses a biologically unique survival mechanism. When faced with physical damage, starvation, or old age, the adult jellyfish does not die. Instead, it undergoes a process called 'transdifferentiation,' where its mature cells revert back to their earliest, unspecialized stem-cell state. The organism effectively turns itself back into a polyp, restarting its life cycle from the beginning. From a cellular biology perspective, this mechanism strongly implies that...", q: "Which choice most logically completes the text?", o: ["A) the jellyfish relies on a symbiotic relationship with ocean bacteria to reverse the aging process.", "B) cellular specialization (the maturation of a cell) is not necessarily a permanent, irreversible process in all organisms.", "C) the immortal jellyfish is entirely immune to predators and physical destruction.", "D) human stem cells can easily be programmed to perform transdifferentiation in a laboratory setting."], c: 1, tag: "Information & Ideas: Inferences", h: "Si las células maduras pueden volver a ser células madre inmaduras, entonces especializarse no es un callejón sin salida.", e: "B. Normalmente, cuando una célula madura, es definitivo. La transdiferenciación de la medusa demuestra que esta maduración no es irreversible." },
+            { p: "Goodhart's Law is an adage in economics stating that 'when a measure becomes a target, it ceases to be a good measure.' For example, a hospital seeking to improve efficiency might implement a policy rewarding doctors who treat patients in under 15 minutes. While the statistical measure of 'patients treated per hour' will undoubtedly increase, the actual quality of healthcare will inevitably plummet as doctors rush through diagnoses. Therefore, Goodhart's Law suggests that...", q: "Which choice most logically completes the text?", o: ["A) hospitals should never attempt to measure or improve the efficiency of their medical staff.", "B) rewarding specific metrics often incentivizes people to manipulate the system at the expense of the overarching goal.", "C) doctors who spend more than 15 minutes with a patient are inherently less competent than faster doctors.", "D) financial incentives are completely ineffective at changing human behavior in a workplace setting."], c: 1, tag: "Information & Ideas: Inferences", h: "Si los doctores se apuran solo para cumplir la métrica (arruinando la salud), están manipulando el sistema para conseguir la recompensa.", e: "B. La ley sugiere que fijar una métrica como objetivo provoca que la gente sacrifique el propósito real (calidad) solo para cumplir con el número exigido." },
+
+            // 15-18: Standard English Conventions: Boundaries & Form/Structure
+            { p: "In modern economics, central banks attempt to cool down an overheating economy by significantly raising interest ______ inflation frequently persists due to rigid supply chain bottlenecks that monetary policy cannot easily fix.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) rates, nevertheless,", "B) rates; nevertheless,", "C) rates nevertheless", "D) rates. Nevertheless"], c: 1, tag: "Standard English Conventions: Boundaries", h: "Tenemos dos cláusulas independientes. Para unirlas usando un adverbio conjuntivo (nevertheless), usamos punto y coma antes y coma después.", e: "B (rates; nevertheless,). Se usa un punto y coma para separar dos cláusulas independientes, seguido de la palabra de transición y una coma." },
+            { p: "Deep learning models require highly specialized hardware to process calculations rapidly. While standard computer processors handle tasks sequentially, Graphics Processing Units (GPUs) contain thousands of smaller cores designed for simultaneous data ______ they are absolutely essential for training complex artificial intelligence.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) processing; therefore,", "B) processing, therefore", "C) processing therefore,", "D) processing. Therefore"], c: 0, tag: "Standard English Conventions: Boundaries", h: "Al igual que la anterior, son dos cláusulas independientes conectadas por 'therefore'.", e: "A (processing; therefore,). Un punto y coma separa las oraciones completas, y 'therefore' va seguido de coma." },
+            { p: "The sudden, unseasonal swarm of desert locusts, descending rapidly upon the fertile agricultural plains of East Africa, ______ devastating to the region's delicate food security.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) are", "B) were", "C) is", "D) have been"], c: 2, tag: "Standard English Conventions: Form & Structure", h: "El sujeto principal es 'The sudden, unseasonal swarm' (singular). Todo lo demás ('of desert locusts...') es un modificador.", e: "C (is). El sujeto 'swarm' es un sustantivo colectivo singular, por lo que requiere el verbo singular 'is'." },
+            { p: "According to ancient historical records, neither the mighty pharaoh nor his elite military advisors ______ prepared for the rapid, devastating chariot tactics employed by the invading Hyksos army.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) was", "B) is", "C) were", "D) has been"], c: 2, tag: "Standard English Conventions: Form & Structure", h: "En 'neither X nor Y', el verbo concuerda con el más cercano (advisors = plural). Y es un relato histórico, por lo que va en pasado.", e: "C (were). Con 'neither... nor', el verbo concuerda con el sujeto más cercano ('advisors', plural) y requiere el tiempo pasado." },
+
+            // 19-21: Expression of Ideas: Transitions
+            { p: "In the famous 1951 conformity experiment, psychologist Solomon Asch asked participants to identify which drawn line was the longest. When placed in a room with actors who intentionally gave the wrong answer, 75% of participants knowingly gave the wrong answer as well, completely doubting their own eyes. ______, the intense human desire to fit in with a group often overrides objective physical reality.", q: "Which choice completes the text with the most logical transition?", o: ["A) Similarly", "B) Ultimately", "C) Instead", "D) For example"], c: 1, tag: "Expression of Ideas: Transitions", h: "La segunda oración es la conclusión final o el resultado que se extrae del experimento.", e: "B (Ultimately). 'En última instancia' introduce la conclusión sociológica fundamental que se deriva de los resultados del experimento." },
+            { p: "The Permian-Triassic extinction event, often called the 'Great Dying,' wiped out over 90% of all species on Earth 252 million years ago. Paleontologists trace the catastrophe to the Siberian Traps, a massive volcanic region that erupted continuously for thousands of years. ______, the eruptions filled the atmosphere with millions of tons of greenhouse gases, hyper-heating the oceans and causing widespread acid rain.", q: "Which choice completes the text with the most logical transition?", o: ["A) Nevertheless", "B) Specifically", "C) Conversely", "D) In comparison"], c: 1, tag: "Expression of Ideas: Transitions", h: "La segunda oración detalla exactamente CÓMO los volcanes causaron la extinción.", e: "B (Specifically). 'Específicamente' se usa para proporcionar los detalles precisos y mecánicos de la idea introducida en la oración anterior." },
+            { p: "Traditional Hard Disk Drives (HDDs) read data by physically spinning a magnetic platter beneath a delicate mechanical needle, a process that is highly susceptible to physical shock and wear over time. ______, Solid State Drives (SSDs) store data on interconnected flash memory chips with absolutely no moving parts, granting them drastically superior durability and speed.", q: "Which choice completes the text with the most logical transition?", o: ["A) In contrast", "B) Furthermore", "C) As a result", "D) Indeed"], c: 0, tag: "Expression of Ideas: Transitions", h: "La primera oración describe un sistema viejo con partes móviles. La segunda un sistema nuevo sin partes móviles. Son opuestos.", e: "A (In contrast). Establece la clara oposición tecnológica entre las unidades mecánicas (HDDs) y las de memoria flash (SSDs)." },
+
+            // 22-27: Expression of Ideas: Rhetorical Synthesis & Mixed Types
+            { p: "While researching the Apollo 11 moon landing, a student took the following notes:\n• Margaret Hamilton was the lead software engineer for NASA's Apollo project.\n• She pioneered the concept of 'asynchronous software' for the Apollo Guidance Computer.\n• During the lunar descent, the computer's radar system overloaded it with unnecessary data.\n• Hamilton's asynchronous code recognized the overload and dropped low-priority tasks.\n• This prioritized the steering and landing functions, preventing a fatal crash.", q: "The student wants to highlight how Hamilton’s specific programming design saved the Apollo 11 mission. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) Margaret Hamilton was the lead software engineer who programmed the Apollo Guidance Computer for NASA.", "B) When the Apollo computer overloaded during descent, Hamilton’s asynchronous software saved the mission by dropping low-priority tasks to focus exclusively on safely steering the module.", "C) During the Apollo 11 moon landing, the computer was overloaded with unnecessary radar data, nearly causing a fatal crash.", "D) Hamilton pioneered asynchronous software, which was highly useful for the Apollo 11 mission when the radar system malfunctioned."], c: 1, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es mostrar el 'diseño específico' (código asíncrono) y cómo 'salvó la misión' (priorizando tareas).", e: "B. Explica explícitamente el mecanismo de su código (soltar tareas de baja prioridad) y su resultado crítico (salvar la misión durante el aterrizaje)." },
+            { p: "While researching the James Webb Space Telescope (JWST), a student took the following notes:\n• Launched in 2021, the JWST orbits the Sun at the L2 Lagrange point, a million miles from Earth.\n• Unlike the Hubble telescope, which views visible light, the JWST observes strictly in the infrared spectrum.\n• Infrared light easily passes through dense cosmic dust clouds.\n• This allows the JWST to clearly photograph the formation of early stars hidden inside thick nebulas.\n• Visible light from these stars is completely blocked by the dust.", q: "The student wants to explain the primary scientific advantage of the JWST over the Hubble telescope. Which choice most effectively uses relevant information from the notes to accomplish this goal?", o: ["A) Unlike Hubble, the JWST operates at the L2 Lagrange point, which is over a million miles away from Earth.", "B) The JWST observes the universe strictly in the infrared spectrum, which was a major technological upgrade over Hubble in 2021.", "C) Because the JWST observes infrared light, which pierces through dense cosmic dust, it can photograph hidden star formations that the visible-light Hubble telescope cannot see.", "D) The Hubble telescope is blocked by dense cosmic dust clouds, making it impossible to see early star formations in nebulas."], c: 2, tag: "Expression of Ideas: Rhetorical Synthesis", h: "El objetivo es explicar la 'ventaja científica principal' (infrarrojo vs luz visible para ver a través del polvo).", e: "C. Sintetiza la diferencia tecnológica (infrarrojo) con el resultado científico directo (ver a través del polvo para fotografiar estrellas ocultas)." },
+            { p: "During periods of extreme economic scarcity, companies holding a monopoly over essential goods—such as life-saving pharmaceuticals or energy—can arbitrarily raise prices without fear of losing customers. Because consumers have no alternative competitors to turn to, they are forced to pay the extortionate rates. Regulatory bodies exist to heavily penalize this predatory practice, commonly known as price ______.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) stabilization", "B) gouging", "C) matching", "D) fixing"], c: 1, tag: "Craft & Structure: Words in Context", h: "Subir los precios de forma abusiva durante una crisis porque la gente no tiene otra opción se llama 'price gouging'.", e: "B (gouging). 'Price gouging' es el término económico preciso para definir el aumento abusivo y predatorio de precios sobre bienes esenciales." },
+            { p: "In behavioral economics, the 'free-rider problem' occurs when individuals utilize public goods—such as national defense, public parks, or clean air—without paying their fair share of the taxes required to maintain them. Because public goods are 'non-excludable,' it is logistically impossible to prevent non-payers from enjoying the benefits. If too many citizens exploit this loophole, the system inevitably ______ due to a severe lack of necessary funding.", q: "Which choice completes the text with the most logical and precise word or phrase?", o: ["A) prospers", "B) collapses", "C) innovates", "D) decentralizes"], c: 1, tag: "Craft & Structure: Words in Context", h: "Si nadie paga por los bienes públicos pero todos los usan, el sistema se queda sin dinero y cae.", e: "B (collapses). Colapsar (collapse); el sistema público quiebra o se hunde si no hay suficientes fondos para mantenerlo." },
+            { p: "Blockchain smart contracts execute automatically without human intermediaries. An insurance company implements a smart contract for crop insurance that triggers an automatic payout to farmers if satellite data confirms local rainfall dropped below 5 inches in a month. Proponents argue this trustless automation completely eliminates the lengthy, biased claims-adjustment process that traditionally plagues farmers after a drought.", q: "Which finding would most directly support the proponents' argument regarding the efficiency of smart contracts?", o: ["A) Farmers using the smart contract received their emergency funds an average of 45 days faster than those using traditional human insurance adjusters.", "B) The satellite data utilized by the smart contract was occasionally distorted by heavy cloud cover.", "C) Hackers successfully breached the blockchain network, altering the rainfall data to trigger false payouts to themselves.", "D) Traditional insurance adjusters argued that the smart contract lacked the human empathy necessary for customer service."], c: 0, tag: "Information & Ideas: Command of Evidence (Textual)", h: "Busca evidencia que muestre que el contrato inteligente fue mucho más eficiente/rápido que el proceso tradicional.", e: "A. Recibir el dinero 45 días más rápido apoya directamente el argumento de que la automatización elimina el largo (lengthy) proceso de reclamación tradicional." },
+            { p: "Neuroplasticity—the brain's ability to reorganize neural pathways—was long thought to be strictly limited to early childhood. However, rehabilitation studies on adult stroke victims show remarkable physiological recovery. When a stroke destroys the brain region responsible for moving the right arm, rigorous physical therapy can actually force healthy, surrounding brain tissue to adapt and take over the destroyed region's motor functions. This empirical data completely upends the century-old dogma that the adult brain is biologically rigid.", q: "Which choice best describes the central idea of the text?", o: ["A) Stroke victims can never fully recover their motor functions because adult brains are biologically rigid.", "B) Physical therapy is a psychological placebo that helps stroke victims cope with permanent brain damage.", "C) The adult brain is highly adaptable, as evidenced by healthy tissue taking over functions lost to stroke damage.", "D) Neuroplasticity only occurs in early childhood, making adult rehabilitation largely ineffective."], c: 2, tag: "Information & Ideas: Central Idea", h: "El texto afirma que la terapia prueba que el cerebro adulto SÍ puede reorganizarse (tomar el control de áreas muertas).", e: "C. La idea central es que la recuperación tras un ictus demuestra la extraordinaria adaptabilidad (neuroplasticidad) del cerebro adulto." },
+            { p: "Excavations at the Clovis site in New Mexico uncovered distinctive fluted stone spear points alongside the remains of extinct megafauna like mammoths. For decades, these artifacts ______ the widely accepted theory that the Clovis people were the very first human settlers in the Americas.", q: "Which choice completes the text so that it conforms to the conventions of Standard English?", o: ["A) underpinned", "B) undermining", "C) to underpin", "D) underpin"], c: 0, tag: "Standard English Conventions: Form & Structure", h: "La oración necesita el verbo principal en tiempo pasado para concordar con 'uncovered' y el contexto histórico ('For decades...').", e: "A (underpinned). El verbo conjugado en pasado simple (underpinned - sostuvieron/apoyaron) es necesario para completar la cláusula de forma gramaticalmente correcta." }
+        ];
+
+        let currentIndex = 0;
+        let selectedAnswers = new Array(qData.length).fill(null);
+        let timerInterval;
+
+        function startExam() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('app-wrapper').style.display = 'flex';
+            
+            // Timer Logic
+            let timeRemaining = 32 * 60; // 32 minutes
+            timerInterval = setInterval(() => {
+                if (timeRemaining <= 0) {
+                    finishExam();
+                    return;
+                }
+                timeRemaining--;
+                const m = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+                const s = (timeRemaining % 60).toString().padStart(2, '0');
+                document.getElementById('timer').innerText = m + ':' + s;
+            }, 1000);
+            
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = qData[currentIndex];
+            document.getElementById('passage-content').innerHTML = q.p;
+            document.getElementById('question-number').innerText = `Question ${currentIndex + 1}`;
+            document.getElementById('question-tag').innerText = q.tag;
+            document.getElementById('question-text').innerText = q.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            q.o.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.className = 'option-label';
+                label.id = `opt-label-${idx}`;
+                
+                const input = document.createElement('input');
+                input.type = 'radio';
+                input.name = 'sat-option';
+                input.value = idx;
+                if (selectedAnswers[currentIndex] === idx) input.checked = true;
+                
+                input.onchange = () => { selectedAnswers[currentIndex] = idx; };
+                
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(opt));
+                optionsContainer.appendChild(label);
+            });
+            
+            document.getElementById('hint-container').style.display = 'none';
+            document.getElementById('explanation-container').style.display = 'none';
+            document.getElementById('btn-prev').disabled = currentIndex === 0;
+            
+            if (currentIndex === qData.length - 1) {
+                document.getElementById('btn-next').innerText = "Finalizar Examen";
+            } else {
+                document.getElementById('btn-next').innerText = "Siguiente";
+            }
+        }
+
+        function prevQuestion() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                renderQuestion();
+            }
+        }
+
+        function nextQuestion() {
+            if (currentIndex < qData.length - 1) {
+                currentIndex++;
+                renderQuestion();
+            } else {
+                finishExam();
+            }
+        }
+
+        function showHint() {
+            const hintBox = document.getElementById('hint-container');
+            hintBox.innerHTML = "<strong>Pista:</strong> " + qData[currentIndex].h;
+            hintBox.style.display = 'block';
+        }
+
+        function evaluateAnswer() {
+            const selected = selectedAnswers[currentIndex];
+            if (selected === null) {
+                alert("Por favor, selecciona una respuesta antes de evaluar.");
+                return;
+            }
+            
+            const q = qData[currentIndex];
+            const explanationBox = document.getElementById('explanation-container');
+            explanationBox.innerHTML = "<strong>Explicación:</strong> " + q.e;
+            explanationBox.style.display = 'block';
+            
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`opt-label-${i}`);
+                if (el) el.classList.remove('option-correct', 'option-incorrect');
+            }
+            
+            const correctEl = document.getElementById(`opt-label-${q.c}`);
+            if (correctEl) correctEl.classList.add('option-correct');
+            
+            if (selected !== q.c) {
+                const selectedEl = document.getElementById(`opt-label-${selected}`);
+                if (selectedEl) selectedEl.classList.add('option-incorrect');
+            }
+        }
+
+        function finishExam() {
+            clearInterval(timerInterval);
+            document.getElementById('app-wrapper').style.display = 'none';
+            document.getElementById('end-screen').style.display = 'flex';
+
+            let correct = 0;
+            let incorrect = 0;
+            let unanswered = 0;
+
+            for (let i = 0; i < qData.length; i++) {
+                if (selectedAnswers[i] === null) {
+                    unanswered++;
+                } else if (selectedAnswers[i] === qData[i].c) {
+                    correct++;
+                } else {
+                    incorrect++;
+                }
+            }
+
+            document.getElementById('score-correct').innerText = correct;
+            document.getElementById('score-incorrect').innerText = incorrect;
+            document.getElementById('score-unanswered').innerText = unanswered;
+        }
+    </script>
+</body>
+</html>

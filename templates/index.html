@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background-color: #004d73;
+            background-image: url('{{ url_for("static", filename="fondo_estudiante2.png") }}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+
+            /* Capa de oscurecimiento para que el texto se lea bien */
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 77, 115, 0.65); /* tono azul semitransparente */
+            z-index: -1;
+        }
+
+        h1, h2 {
+            color: white;
+            text-align: center;
+        }
+
+        .contenedor-columnas {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            margin: 40px auto;
+            width: 80%;
+        }
+
+        .columna {
+            width: 45%;
+            background: rgba(0, 77, 115, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+
+        a {
+            color: #00c8ff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .examen-realizado {
+            color: #ffd700;
+        }
+
+        .examen-deshabilitado {
+            color: #aaaaaa;
+        }
+
+        /* Botón invisible */
+        #boton-configurar {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Exámenes disponibles</h1>
+
+<div class="contenedor-columnas">
+
+    <div class="columna">
+        <h2>TOEFL</h2>
+        <ul>
+        {% for examen in examenes["toefl"] %}
+            {% set estado = estados[examen] %}
+            {% if estado == "habilitado" %}
+                <li><a href="/examen/toefl/{{ examen }}">{{ examen }}</a></li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="columna">
+        <h2>SAT</h2>
+        <ul>
+        {% for examen in examenes["sat"] %}
+            {% set estado = estados[examen] %}
+            {% if estado == "habilitado" %}
+                <li><a href="/examen/sat/{{ examen }}">{{ examen }}</a></li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<a id="boton-configurar" href="/configure"></a>
+
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOEFL 2026 - Official Simulator (Vol. 3)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .tab-active { border-bottom: 4px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .subtab-active { background-color: #e5e7eb; border-left: 4px solid #2563eb; font-weight: 600; }
+        .overtime { color: #dc2626; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .feedback-correct { background-color: #dcfce7; border-left: 4px solid #22c55e; padding: 10px; margin-top: 10px; border-radius: 4px;}
+        .feedback-incorrect { background-color: #fee2e2; border-left: 4px solid #ef4444; padding: 10px; margin-top: 10px; border-radius: 4px;}
+        
+        .word-chip { cursor: grab; user-select: none; }
+        .word-chip:active { cursor: grabbing; }
+        .drop-zone { min-height: 50px; border: 2px dashed #cbd5e1; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-gray-800">
+
+    <header class="bg-white shadow-sm z-10">
+        <a id="boton-inicio" href="/">🏠︎</a>
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-16">
+            <div class="flex items-center gap-2 text-xl font-bold text-blue-700">
+                <i class="fa-solid fa-graduation-cap"></i> TOEFL 2026 Simulator (Vol. 3)
+            </div>
+            <nav class="flex h-full">
+                <button onclick="changeSection('reading')" id="nav-reading" class="px-6 h-full hover:bg-gray-50 flex items-center tab-active">Reading</button>
+                <button onclick="changeSection('listening')" id="nav-listening" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500">Listening</button>
+                <button onclick="changeSection('speaking')" id="nav-speaking" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500">Speaking</button>
+                <button onclick="changeSection('writing')" id="nav-writing" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500">Writing</button>
+                <button onclick="changeSection('results')" id="nav-results" class="px-6 h-full hover:bg-gray-50 flex items-center text-gray-500"><i class="fa-solid fa-chart-bar mr-2"></i>Results</button>
+            </nav>
+            <div class="flex items-center gap-4">
+                <div id="global-timer" class="text-lg font-mono bg-gray-100 px-3 py-1 rounded border border-gray-300">00:00</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col overflow-y-auto z-0 shadow-inner" id="sidebar"></aside>
+        <main class="flex-1 bg-gray-50 p-8 overflow-y-auto relative" id="main-content">
+            <div class="text-center text-gray-500 mt-20">Loading simulator...</div>
+        </main>
+    </div>
+
+<script>
+    const examData = {
+        reading: {
+            title: "Reading Section",
+            modules: [
+                {
+                    id: "m1", title: "Module 1",
+                    tasks: [
+                        {
+                            id: "m1_t1", type: "complete_words", title: "Task 1: Complete the Words (Science)",
+                            text: "Marine biology is the scientific study of organisms in the ocean. Many species have evolved to survive in extreme condit<input type='text' id='cw_1' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='6'> (1). Corals, for example, build large structures that provide a habi<input type='text' id='cw_2' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='3'> (2) for diverse sea life. Scientists observe that rising water temperatures can cause coral bleach<input type='text' id='cw_3' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='3'> (3), which endangers the ecosystem. Ongoing research focuses on genetic adaptat<input type='text' id='cw_4' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='5'> (4) that might mitigate this threat. Conservation efforts are now prioritiz<input type='text' id='cw_5' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='4'> (5) areas of high biodiversity to ensure ecosystem resil<input type='text' id='cw_6' class='w-16 border-b-2 border-gray-400 bg-transparent text-center focus:outline-none focus:border-blue-500' maxlength='5'> (6) for future generations.",
+                            answers: ["ions", "tat", "ing", "ions", "ing", "ience"],
+                            hints: ["Conditions", "Living place", "Process of turning white", "Changes over time", "To make first", "Recovery power"],
+                            explanations: ["condit-ions", "habi-tat", "bleach-ing", "adaptat-ions", "prioritiz-ing", "resil-ience"]
+                        },
+                        {
+                            id: "m1_t2", type: "daily_life", title: "Task 2: Read in Daily Life",
+                            subtasks: [
+                                {
+                                    title: "1. Campus Gym Update",
+                                    passage: "<strong>Gym Membership Policy Change</strong><br><br>All students are now required to present their physical student ID card to access the university fitness center. Digital IDs or smartphone screens will no longer be accepted starting next Monday. This decision was made to enhance campus security and ensure that only currently enrolled students utilize the facility.",
+                                    questions: [
+                                        { q: "What is the new requirement for gym entry?", opts: ["Digital ID on phone", "Physical student ID card", "Membership payment", "Registering in advance"], correct: 1, hint: "Look at the requirement.", exp: "Requires physical student ID card." },
+                                        { q: "When does this change take effect?", opts: ["Immediately", "Next Monday", "Next semester", "Never"], correct: 1, hint: "Look at the timeline.", exp: "Starting next Monday." }
+                                    ]
+                                },
+                                {
+                                    title: "2. Student Forum Post",
+                                    passage: "<strong>@ChemMajor99:</strong> Has anyone here taken Professor Vance for Organic Chemistry? I'm worried about the lab component. Do we need to buy our own lab coat and goggles, or are they provided? Also, how hard are the weekly quizzes? Any tips for survival would be appreciated! 🧪",
+                                    questions: [
+                                        { q: "What is the user's primary concern?", opts: ["The professor's personality", "Requirements and difficulty of the Chemistry class", "How to find the lab", "Buying textbooks"], correct: 1, hint: "Look at the questions asked.", exp: "The student is asking about equipment and difficulty." },
+                                        { q: "What specific items is the student asking about?", opts: ["Calculators and laptops", "Safety equipment", "Chemical reagents", "Notebooks"], correct: 1, hint: "Look at the list.", exp: "Lab coat and goggles." },
+                                        { q: "What is the user hoping to get?", opts: ["A better grade", "Advice from students who took the class", "A study buddy", "Professor's office hours"], correct: 1, hint: "Look at the last sentence.", exp: "Tips for survival." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "m1_t3", type: "academic", title: "Task 3: Read an Academic Passage",
+                            passage: "<strong>The Rise of Gothic Architecture</strong><br><br>Gothic architecture emerged in 12th-century France and dominated the European architectural landscape until the 16th century. It is characterized by its verticality and light, a stark departure from the thick walls and heavy arches of the preceding Romanesque style. The architectural revolution was driven by key innovations, most notably the pointed arch, the ribbed vault, and the flying buttress. These structural elements allowed walls to be thinner and taller, creating vast, airy interiors that seemed to reach toward the heavens. The pointed arch, unlike the semicircular Romanesque arch, distributed weight more efficiently, reducing the need for heavy load-bearing walls. This allowed for the insertion of expansive stained-glass windows, which filled the cathedrals with ethereal light. The flying buttress was equally critical; it acted as an external skeleton, supporting the roof's outward pressure from the outside, thereby allowing architects to push the verticality of buildings to unprecedented heights. Consequently, Gothic cathedrals like Notre Dame and Chartres became symbols of religious aspiration, designed to overwhelm the observer with a sense of divine grandeur and transcendence.",
+                            questions: [
+                                { q: "What was a major difference between Gothic and Romanesque architecture?", opts: ["Gothic walls were thicker.", "Romanesque architecture focused on light.", "Gothic architecture emphasized verticality and light.", "Romanesque buildings were taller."], correct: 2, hint: "Compare the descriptions.", exp: "Gothic is characterized by verticality and light." },
+                                { q: "What is the primary function of the pointed arch?", opts: ["To support windows", "To distribute weight efficiently", "To darken the interior", "To replace the ribbed vault"], correct: 1, hint: "Why was it better than Romanesque?", exp: "Distributed weight more efficiently." },
+                                { q: "What did the flying buttress allow architects to do?", opts: ["Build thicker walls", "Build higher and taller structures", "Use less glass", "Avoid using vaults"], correct: 1, hint: "What was its role?", exp: "Supported roof pressure from outside, allowing unprecedented heights." },
+                                { q: "What was a main effect of the expansive stained-glass windows?", opts: ["They made cathedrals look smaller.", "They filled interiors with ethereal light.", "They supported the heavy roof.", "They prevented light from entering."], correct: 1, hint: "What did the windows provide?", exp: "Filled cathedrals with ethereal light." },
+                                { q: "What was the broader purpose of the Gothic style?", opts: ["To create sturdy fortresses", "To serve as symbols of religious aspiration", "To simplify building processes", "To provide affordable housing"], correct: 1, hint: "What was the symbolic intent?", exp: "Symbols of religious aspiration." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "m2", title: "Module 2 (Advanced)",
+                    tasks: [
+                        {
+                            id: "m2_t1", type: "daily_life", title: "Task 1: Read in Daily Life",
+                            subtasks: [
+                                {
+                                    title: "1. Email: Career Fair",
+                                    passage: "<strong>From:</strong> Career Services Office<br><strong>To:</strong> All Students<br><strong>Subject:</strong> Upcoming Spring Career Fair<br><br>We are excited to invite you to the annual Spring Career Fair next Friday. With over 50 recruiters attending, this is a prime opportunity to connect with potential employers. Please remember to bring multiple copies of your resume. We will host a workshop on 'Professional Networking' this Wednesday for those who need a refresher.",
+                                    questions: [
+                                        { q: "What should students bring to the fair?", opts: ["A laptop", "Multiple copies of their resume", "Professional attire", "Their student ID"], correct: 1, hint: "Read the email body.", exp: "Bring multiple copies of your resume." },
+                                        { q: "What service is available on Wednesday?", opts: ["A job interview", "A networking workshop", "Resume printing", "Employer interviews"], correct: 1, hint: "Read the last sentence.", exp: "Workshop on Professional Networking." }
+                                    ]
+                                },
+                                {
+                                    title: "2. Email: Tuition Deadline",
+                                    passage: "<strong>From:</strong> Financial Office<br><strong>To:</strong> All Students<br><strong>Subject:</strong> Important: Tuition Payment Deadline<br><br>This is a reminder that the tuition payment deadline for the upcoming semester is next Friday at 5:00 PM. Please ensure your accounts are settled to avoid late fees. If you have any issues regarding payments or financial aid, contact our office before the deadline. We understand that financial circumstances vary, and we are willing to discuss payment plans for students who qualify.",
+                                    questions: [
+                                        { q: "When is the tuition deadline?", opts: ["Next Wednesday", "Next Friday at 5:00 PM", "End of the month", "Next semester start"], correct: 1, hint: "Check the first sentence.", exp: "Next Friday at 5:00 PM." },
+                                        { q: "What should students do if they have payment issues?", opts: ["Wait until the last minute", "Contact the office before the deadline", "Pay late fees", "Ignore the email"], correct: 1, hint: "Look for the advice on issues.", exp: "Contact our office before the deadline." },
+                                        { q: "What option is available for qualifying students?", opts: ["Full scholarships", "Payment plans", "Course credit", "Extended deadlines"], correct: 1, hint: "Look at the end of the email.", exp: "Willing to discuss payment plans." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "m2_t2", type: "academic", title: "Task 2: Academic Passage",
+                            passage: "<strong>Memory Consolidation Processes</strong><br><br>Memory consolidation is the process by which a memory trace stabilizes after initial acquisition. Research indicates that this process involves two distinct stages: synaptic consolidation and systems consolidation. Synaptic consolidation, or early-stage consolidation, occurs within minutes to hours after learning and involves changes in the protein synthesis and synaptic connectivity of the neurons involved in the memory trace. Systems consolidation, or late-stage consolidation, takes much longer, often weeks or even months. During this stage, the hippocampus—the brain's short-term memory center—interacts with the neocortex to gradually transfer and integrate information into long-term storage. Research has demonstrated that sleep plays a crucial role in systems consolidation. During sleep, particularly slow-wave sleep, the hippocampus replays recently acquired information, thereby strengthening the neural pathways and facilitating the transfer of data to the neocortex. This explains why sleep deprivation negatively impacts learning and long-term retention. Understanding this process is vital for treatments of neurodegenerative conditions, as sleep-based therapies have shown promise in stabilizing cognitive functions in patients suffering from memory decline.",
+                            questions: [
+                                { q: "What characterizes synaptic consolidation?", opts: ["It takes months.", "It happens within hours.", "It bypasses the hippocampus.", "It happens only during sleep."], correct: 1, hint: "Look for the timeframe.", exp: "Occurs within minutes to hours." },
+                                { q: "What is the primary role of the hippocampus during systems consolidation?", opts: ["Long-term storage", "Short-term processing and transfer", "Destroying old memories", "Synthesizing proteins"], correct: 1, hint: "Check the second stage description.", exp: "Transfer and integrate info to long-term storage." },
+                                { q: "What activity is essential for systems consolidation?", opts: ["Physical exercise", "Sleep", "High protein diet", "Reading"], correct: 1, hint: "Look for the effect of sleep.", exp: "Sleep plays a crucial role." },
+                                { q: "What is the effect of sleep deprivation?", opts: ["Improved retention", "Negative impact on learning", "No effect", "Memory enhancement"], correct: 1, hint: "How is it linked to learning?", exp: "Negatively impacts learning and retention." },
+                                { q: "Why is understanding this process important?", opts: ["To create more sleep", "To help treat neurodegenerative conditions", "To change synaptic protein synthesis", "To stop the neocortex from working"], correct: 1, hint: "Look at the final sentence.", exp: "Vital for treatments of neurodegenerative conditions." }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        listening: {
+            title: "Listening Section",
+            modules: [
+                {
+                    id: "m1", title: "Module 1",
+                    tasks: [
+                        {
+                            id: "l_m1_t1", type: "listen_choose", title: "Task 1: Listen and Choose a Response",
+                            instructions: "Listen to 8 phrases in American English and select the best response.",
+                            items: [
+                                { audio: { text: "Hi, do you know if the science building has a study lounge?", speaker: "man" }, opts: ["The science building is far.", "Yes, there is one on the second floor.", "I do not study science.", "The lounge is closed."], correct: 1, exp: "Responde confirmando la existencia del lugar." },
+                                { audio: { text: "I'm worried I might miss the deadline for the history essay.", speaker: "woman" }, opts: ["The essay is only one page.", "History is very boring.", "You should ask the professor for an extension.", "I passed the history class."], correct: 2, exp: "Ofrece solución lógica ante una preocupación." },
+                                { audio: { text: "Do you have the link for today's virtual seminar?", speaker: "man" }, opts: ["I have a laptop.", "Yes, I'll send it to your email right now.", "Seminars are boring.", "The link is broken."], correct: 1, exp: "Ofrece ayuda inmediata." },
+                                { audio: { text: "Can you help me move these boxes to the dorm office?", speaker: "woman" }, opts: ["Sure, I'll be there in a minute.", "Boxes are very heavy.", "I have no space.", "The office is closed."], correct: 0, exp: "Acepta el favor." },
+                                { audio: { text: "Is the bus to downtown free with a student ID?", speaker: "man" }, opts: ["Downtown is busy.", "Yes, just show your card to the driver.", "The bus stop is there.", "I prefer taking the train."], correct: 1, exp: "Responde a la duda sobre el coste." },
+                                { audio: { text: "I can't believe how hard the calculus final was!", speaker: "woman" }, opts: ["Calculus is easy.", "I know, I hope we both passed.", "I love math.", "The final is next week."], correct: 1, exp: "Muestra empatía ante una experiencia compartida." },
+                                { audio: { text: "Would you like to join us for lunch at the canteen?", speaker: "man" }, opts: ["The canteen food is good.", "I'd love to, but I have a class in ten minutes.", "Canteen has many seats.", "I already ate."], correct: 1, exp: "Declina amablemente con una razón." },
+                                { audio: { text: "Could you tell me where the nearest bookstore is?", speaker: "woman" }, opts: ["It's right across the street from the cafeteria.", "I bought a book.", "The store is open late.", "I don't read."], correct: 0, exp: "Responde con la ubicación exacta." }
+                            ]
+                        },
+                        {
+                            id: "l_m1_t2", type: "listen_announcement", title: "Task 2: Announcement",
+                            instructions: "Listen to the announcement (approx 50 words).",
+                            audio: { text: "Attention: The University Bookstore will close early this Friday at 3:00 PM for inventory updates. We will reopen at 9:00 AM on Monday morning. Online orders placed before Friday will be processed as usual. We thank you for your patience and understanding regarding this temporary change in hours.", speaker: "woman" },
+                            questions: [
+                                { q: "Why is the bookstore closing early?", opts: ["It is a holiday.", "For inventory updates.", "Lack of staff.", "Fire safety check."], correct: 1, hint: "Listen to the reason.", exp: "For inventory updates." },
+                                { q: "When will it reopen?", opts: ["Friday night", "Saturday morning", "Monday at 9 AM", "Sunday"], correct: 2, hint: "Listen for the opening time.", exp: "Reopen at 9:00 AM on Monday." }
+                            ]
+                        },
+                        {
+                            id: "l_m1_t3", type: "listen_convo", title: "Task 3: Conversations",
+                            instructions: "Listen to two casual campus conversations.",
+                            subtasks: [
+                                {
+                                    title: "Conversation 1",
+                                    audio: [{ speaker: "man", text: "Hey Lisa, are you going to the student club fair this afternoon?" }, { speaker: "woman", text: "I wanted to, but I have to finish my history reading by five." }, { speaker: "man", text: "Oh, that's too bad. I was going to check out the photography group." }, { speaker: "woman", text: "Take some photos for me, okay?" }],
+                                    questions: [
+                                        { q: "Why can't Lisa go to the fair?", opts: ["She is working.", "She has homework to finish.", "She doesn't like clubs.", "She is tired."], correct: 1, hint: "Listen for her reason.", exp: "She has history reading." },
+                                        { q: "What club was the man going to check out?", opts: ["History", "Photography", "Debate", "Science"], correct: 1, hint: "Listen for the club name.", exp: "Photography group." }
+                                    ]
+                                },
+                                {
+                                    title: "Conversation 2",
+                                    audio: [{ speaker: "woman", text: "Do you know where the physics lab is located? My map is confusing." }, { speaker: "man", text: "Sure, it's in the west wing, right next to the chemistry department." }, { speaker: "woman", text: "West wing... is that near the library?" }, { speaker: "man", text: "Exactly, walk past the library and it's the large brick building." }],
+                                    questions: [
+                                        { q: "What building are they talking about?", opts: ["Physics lab", "Chemistry department", "Library", "West wing office"], correct: 0, hint: "What is she looking for?", exp: "Physics lab." },
+                                        { q: "How can she find the building?", opts: ["It's the smallest one.", "Follow the signs.", "Walk past the library.", "Ask the guard."], correct: 2, hint: "What are the directions?", exp: "Walk past the library." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "l_m1_t4", type: "listen_talk", title: "Task 4: Academic Talk",
+                            instructions: "Listen to the professor's lecture.",
+                            audio: { text: "Welcome. Today we look at why bees are so essential. They don't just make honey; they are the most important pollinators in our ecosystem. Bees visit flowers, collecting nectar, but in the process, they transfer pollen, which allows plants to fertilize and grow fruits, nuts, and seeds. About a third of the food we eat depends on bee pollination. However, bee populations are currently declining globally due to habitat loss and pesticide usage. If bees continue to disappear, it could threaten the food supply for billions of people. It's a critical environmental challenge.", speaker: "man" },
+                            questions: [
+                                { q: "What is the topic of the talk?", opts: ["The history of honey.", "The role of bees as pollinators.", "The decline of global pesticides.", "How bees build hives."], correct: 1, hint: "Look at the intro.", exp: "Bees as essential pollinators." },
+                                { q: "What happens when bees visit flowers?", opts: ["They kill the plant.", "They pollinate and help growth.", "They stop fertilization.", "They create new habitats."], correct: 1, hint: "What is the result?", exp: "Transfer pollen, allowing fertilization." },
+                                { q: "What portion of food depends on bees?", opts: ["Half", "One third", "Most of it", "None"], correct: 1, hint: "Listen for the fraction.", exp: "About a third." },
+                                { q: "Why are bee populations declining?", opts: ["Global warming", "Habitat loss and pesticides", "Disease", "Honey overproduction"], correct: 1, hint: "Listen for the causes.", exp: "Habitat loss and pesticide usage." }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: "m2", title: "Module 2 (Advanced)",
+                    tasks: [
+                        {
+                            id: "l_m2_t1", type: "listen_choose", title: "Task 1: Listen and Choose a Response",
+                            instructions: "Listen to 8 more complex daily phrases.",
+                            items: [
+                                { audio: { text: "I've been trying to register for the advanced biology course for an hour, but the website keeps crashing.", speaker: "woman" }, opts: ["That's annoying. Maybe you should call the registrar's IT support line.", "Calculus is also hard.", "Biology is boring.", "The registration is free."], correct: 0, exp: "Ofrece solución técnica ante un problema web." },
+                                { audio: { text: "Are you attending the guest speaker's presentation tonight on climate policy?", speaker: "man" }, opts: ["Climate is changing.", "Yes, I really want to hear their perspective on local policy.", "I don't like speeches.", "The library is closed."], correct: 1, exp: "Confirma su intención de ir." },
+                                { audio: { text: "My laptop screen is flickering like crazy. It's making my eyes hurt.", speaker: "woman" }, opts: ["Laptops have screens.", "You should get it checked out; it might be a hardware issue.", "Eyes are delicate.", "Reading is good."], correct: 1, exp: "Advierte del problema de hardware." },
+                                { audio: { text: "Can you help me review my lab report before I submit it tomorrow?", speaker: "man" }, opts: ["Lab reports are long.", "Sure, send it over and I'll look it over tonight.", "I am busy.", "Reviewing is fun."], correct: 1, exp: "Accede al favor." },
+                                { audio: { text: "The cafeteria is serving sushi today, have you tried it?", speaker: "woman" }, opts: ["I am allergic to fish.", "Sushi is expensive.", "I had a sandwich.", "I don't like raw food."], correct: 0, exp: "Explica su razón para no probarlo." },
+                                { audio: { text: "Do you know if Professor Higgins allows late submissions?", speaker: "man" }, opts: ["Higgins is a name.", "Usually not, unless you have an emergency.", "Late is not good.", "Professors make rules."], correct: 1, exp: "Responde a la duda sobre normas de clase." },
+                                { audio: { text: "I need to find a quiet place on campus to record my audio presentation.", speaker: "woman" }, opts: ["The library has private study rooms you can book.", "Audio is loud.", "Presentation is hard.", "The campus is noisy."], correct: 0, exp: "Sugiere un lugar apropiado." },
+                                { audio: { text: "I think I've decided to change my major to Graphic Design.", speaker: "man" }, opts: ["Design is art.", "That's a bold move! Have you checked if your previous credits will transfer?", "I am a scientist.", "Credits are important."], correct: 1, exp: "Responde con una pregunta relevante al cambio." }
+                            ]
+                        },
+                        {
+                            id: "l_m2_t2", type: "listen_convo", title: "Task 2: Conversation",
+                            instructions: "Listen to a more complex campus conversation.",
+                            subtasks: [
+                                {
+                                    title: "Conversation",
+                                    audio: [{ speaker: "man", text: "Hey, do you think I should apply for the research assistant position in the lab?" }, { speaker: "woman", text: "Definitely! It looks great on your resume, especially if you want to go to grad school." }, { speaker: "man", text: "That's true, but I'm worried about the time commitment with my current courses." }, { speaker: "woman", text: "You could talk to the lab lead about part-time hours; they're usually flexible." }],
+                                    questions: [
+                                        { q: "Why does the woman suggest applying?", opts: ["It pays a lot.", "It helps grad school applications.", "It's easy work.", "The professor is nice."], correct: 1, hint: "What does she say about resumes?", exp: "Great on your resume, good for grad school." },
+                                        { q: "What is the man's worry?", opts: ["Getting the job.", "Time commitment.", "Lab equipment.", "Location."], correct: 1, hint: "Why is he hesitant?", exp: "Worried about time commitment." }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            id: "l_m2_t3", type: "listen_announcement", title: "Task 3: Announcement",
+                            instructions: "Listen to the announcement.",
+                            audio: { text: "Attention: The University Health Clinic is hosting a dental checkup event next Wednesday. If you need a consultation or advice on oral hygiene, stop by between 1 PM and 5 PM. Free toothbrushes and toothpaste will be provided to all students who sign in. No insurance is required.", speaker: "man" },
+                            questions: [
+                                { q: "What service is offered?", opts: ["Eye exams.", "Dental checkups.", "Blood work.", "General physicals."], correct: 1, hint: "Listen for the health service.", exp: "Dental checkup." },
+                                { q: "What do students get for signing in?", opts: ["Free coffee.", "A gift card.", "Toothbrushes and toothpaste.", "A t-shirt."], correct: 2, hint: "What is provided?", exp: "Free toothbrushes and toothpaste." }
+                            ]
+                        },
+                        {
+                            id: "l_m2_t4", type: "listen_talk", title: "Task 4: Academic Talk (Tech)",
+                            instructions: "Listen to the lecture on Blockchain.",
+                            audio: { text: "Today we discuss blockchain technology. Simply put, it's a decentralized digital ledger. Unlike traditional databases stored on one server, blockchain records data across a network of computers. Every time a new transaction is made, it's added as a block to the chain. The security comes from cryptography; once data is recorded, it's incredibly hard to change. This makes it ideal for areas like finance or tracking supply chains. While its most famous use is cryptocurrency, the potential is vast because it fosters trust in digital environments without needing a middleman like a bank.", speaker: "woman" },
+                            questions: [
+                                { q: "What is blockchain?", opts: ["A central bank database.", "A decentralized digital ledger.", "A cryptocurrency only.", "A type of internet speed."], correct: 1, hint: "What is the definition?", exp: "Decentralized digital ledger." },
+                                { q: "What makes blockchain secure?", opts: ["Banks.", "Government regulation.", "Cryptography.", "Computers on one server."], correct: 2, hint: "Where does security come from?", exp: "Cryptography." },
+                                { q: "What is the benefit of blockchain?", opts: ["It is fast.", "It fosters trust without middlemen.", "It is free.", "It increases internet speed."], correct: 1, hint: "What is the benefit over banks?", exp: "Trust without needing a middleman." },
+                                { q: "Where does it store data?", opts: ["One server.", "Across a network.", "In a paper ledger.", "On your phone only."], correct: 1, hint: "How does it store info?", exp: "Across a network of computers." }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        speaking: {
+            title: "Speaking Section",
+            modules: [
+                {
+                    id: "s1", title: "Speaking Tasks",
+                    tasks: [
+                        {
+                            id: "s_t1", type: "speak_repeat", title: "Task 1: Listen and Repeat",
+                            instructions: "You will hear 7 phrases related to environmental sustainability. You must repeat each phrase exactly into your microphone in 15 seconds.",
+                            phrases: [
+                                "The campus green project aims to reduce carbon emissions by ten percent.",
+                                "Sustainable agriculture practices can help maintain long-term soil health.",
+                                "Please remember to separate your recyclables in the designated bins.",
+                                "Renewable energy sources are essential for a cleaner and healthier future.",
+                                "The environmental research lab focuses on studying renewable resources.",
+                                "Water conservation efforts on campus have yielded significant positive results.",
+                                "Developing eco-friendly transportation is a key goal of our university initiative."
+                            ]
+                        },
+                        {
+                            id: "s_t2", type: "speak_interview", title: "Task 2: Take an Interview",
+                            instructions: "The interviewer will ask 4 questions about your views on work-life balance and studies.",
+                            questions: [
+                                "Do you believe it is important to dedicate extra hours to your studies, or should students prioritize personal rest and well-being? Why?",
+                                "When working in a team, do you prefer to take on leadership roles or support the team in smaller ways? Please elaborate.",
+                                "How do you handle pressure when deadlines are fast approaching and you have too much work to do?",
+                                "What role do you think extracurricular activities play in a student's personal and professional development?"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        writing: {
+            title: "Writing Section",
+            modules: [
+                {
+                    id: "w1", title: "Writing Tasks",
+                    tasks: [
+                        {
+                            id: "w_t1", type: "write_sentence", title: "Task 1: Build a Sentence",
+                            instructions: "Construct a grammatically correct sentence from the given components.",
+                            items: [
+                                { words: ["campus", "the", "library", "in", "is", "quiet"], correct: "The library on campus is quiet" },
+                                { words: ["research", "paper", "needs", "more", "data", "The"], correct: "The research paper needs more data" },
+                                { words: ["professor", "email", "sent", "a", "The", "students", "to"], correct: "The professor sent an email to students" },
+                                { words: ["students", "group", "study", "the", "in", "meet"], correct: "The students meet in the study group" },
+                                { words: ["exam", "for", "prepare", "you", "should", "your"], correct: "You should prepare for your exam" },
+                                { words: ["university", "new", "The", "built", "lab", "a"], correct: "The university built a new lab" },
+                                { words: ["are", "notes", "available", "The", "online"], correct: "The notes are available online" },
+                                { words: ["advisor", "my", "contact", "must", "I"], correct: "I must contact my advisor" },
+                                { words: ["science", "experiment", "The", "was", "finished"], correct: "The science experiment was finished" },
+                                { words: ["campus", "events", "join", "to", "all", "students", "Can"], correct: "Can all students join campus events" }
+                            ]
+                        },
+                        {
+                            id: "w_t2", type: "write_email", title: "Task 2: Write an Email",
+                            timeLimit: 420,
+                            instructions: "You have 7 minutes to write a formal email to your academic advisor regarding your course schedule. In your email, you must include the following 3 aspects:\n1) Explain why you need to drop the current Biology course.\n2) Suggest two alternative courses you would like to take.\n3) Ask for an appointment to meet this week.\n\nAn effective response should be around 100 words."
+                        },
+                        {
+                            id: "w_t3", type: "write_academic", title: "Task 3: Academic Discussion",
+                            timeLimit: 600,
+                            instructions: "You have 10 minutes. Read the professor's post and the two student responses. Then, contribute to the discussion.\n\nIn your response, you should do the following:\n- Express and support your opinion.\n- Make a contribution to the discussion in your own words.\n\nAn effective response will contain at least 100 words.\nIn your response, you should do the following: Express and support your opinion; Make a contribution to the discussion in your own words. An effective response will contain at least 100 words.",
+                            prof: "<strong>Professor Diaz:</strong> This week, we are discussing the role of mandatory volunteering in higher education. Some institutions now require students to complete a certain number of community service hours before graduation. Proponents argue this fosters civic responsibility and empathy. Critics maintain that forcing students to volunteer cheapens the act and may unfairly burden those who already balance work and studies. What is your perspective? Should community service be a requirement for graduation?",
+                            student1: "<strong>Sarah:</strong> I feel that mandatory volunteering is a good idea. Many students are so focused on their degrees that they forget to engage with the actual problems in their communities. By requiring service, schools encourage us to step out of our bubbles and see the world from different perspectives. It shouldn't be about the hours, but about the impact we can make. It helps us build character and empathy.",
+                            student2: "<strong>Mark:</strong> I strongly disagree. Forcing someone to volunteer turns an act of kindness into just another box to check. Many students are already working part-time jobs and taking full course loads. Adding another mandatory obligation just adds stress and might result in students performing service poorly just to get it over with. Volunteering should be done out of free will, not under pressure from the university."
+                        }
+                    ]
+                }
+            ]
+        }
+    };
+
+    // --- STATE ---
+    let currentSection = 'reading';
+    let currentModule = 0;
+    let currentTask = 0;
+    let globalSeconds = 0;
+    let timerInterval;
+    let recognition;
+    let speakingTranscripts = {};
+    let scores = { reading: {correct:0, total:0}, listening: {correct:0, total:0} };
+
+    // --- INIT ---
+    function init() {
+        startTimer();
+        setupSpeechRecognition();
+        renderSidebar();
+        renderTask();
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            globalSeconds++;
+            const mins = Math.floor(globalSeconds / 60).toString().padStart(2, '0');
+            const secs = (globalSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('global-timer').innerText = `${mins}:${secs}`;
+        }, 1000);
+    }
+
+    function changeSection(section) {
+        currentSection = section;
+        currentModule = 0;
+        currentTask = 0;
+        ['reading', 'listening', 'speaking', 'writing', 'results'].forEach(s => {
+            const btn = document.getElementById(`nav-${s}`);
+            if(s === section) { btn.classList.add('tab-active'); btn.classList.remove('text-gray-500'); } 
+            else { btn.classList.remove('tab-active'); btn.classList.add('text-gray-500'); }
+        });
+        if (section === 'results') { document.getElementById('sidebar').innerHTML = ''; renderResults(); } 
+        else { renderSidebar(); renderTask(); }
+    }
+
+    function renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.innerHTML = '';
+        const sectionData = examData[currentSection];
+        sectionData.modules.forEach((mod, mIndex) => {
+            const modDiv = document.createElement('div');
+            modDiv.className = 'py-2 px-4 font-bold text-gray-700 bg-gray-100 border-b';
+            modDiv.innerText = mod.title;
+            sidebar.appendChild(modDiv);
+            mod.tasks.forEach((task, tIndex) => {
+                const taskBtn = document.createElement('button');
+                taskBtn.className = `w-full text-left py-2 px-6 text-sm hover:bg-gray-200 ${mIndex === currentModule && tIndex === currentTask ? 'subtab-active' : ''}`;
+                taskBtn.innerText = task.title;
+                taskBtn.onclick = () => { currentModule = mIndex; currentTask = tIndex; renderSidebar(); renderTask(); };
+                sidebar.appendChild(taskBtn);
+            });
+        });
+    }
+
+    function renderTask() {
+        const content = document.getElementById('main-content');
+        const task = examData[currentSection].modules[currentModule].tasks[currentTask];
+        let html = `<h2 class="text-2xl font-bold mb-6 text-blue-800">${task.title}</h2>`;
+        
+        if (task.type === 'complete_words') {
+            html += `<div class="bg-white p-6 rounded shadow-sm border border-gray-200 text-lg leading-relaxed mb-6">${task.text}</div>
+            <div class="flex gap-4"><button onclick="checkCompleteWords('${task.id}')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Comprobar Respuestas</button><button onclick="showHintsCompleteWords('${task.id}')" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">Ver Pistas</button></div><div id="feedback-${task.id}" class="mt-4"></div>`;
+        } else if (task.type === 'daily_life' || task.type === 'academic') {
+            html += task.passage ? renderPassageAndQuestions(task) : task.subtasks.map((sub, idx) => `<h3 class="text-xl font-bold mt-8 mb-4 border-b pb-2">${sub.title}</h3>` + renderPassageAndQuestions(sub, `${task.id}_sub${idx}`)).join('');
+        } else if (task.type === 'listen_choose') {
+            html += `<p class="mb-4 text-gray-600"><i class="fa-solid fa-headphones"></i> ${task.instructions}</p>` + task.items.map((item, idx) => `
+                <div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4"><div class="flex items-center gap-4 mb-4"><span class="font-bold">Item ${idx+1}:</span><button onclick="playAudio('${item.audio.text.replace(/'/g, "\\'")}', '${item.audio.speaker}')" class="bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600"><i class="fa-solid fa-play"></i> Play</button></div>
+                <div class="space-y-2 pl-4">${item.opts.map((opt, oIdx) => `<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="q_${task.id}_${idx}" value="${oIdx}"> <span>${opt}</span></label>`).join('')}</div>
+                <div class="mt-4 flex gap-2"><button onclick="checkSingleMCQ('${task.id}_${idx}', ${item.correct}, '${item.exp.replace(/'/g, "\\'")}')" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded">Comprobar</button></div>
+                <div id="fb_${task.id}_${idx}" class="mt-2 text-sm"></div></div>`).join('');
+        } else if (task.type === 'listen_announcement' || task.type === 'listen_talk') {
+            html += `<p class="mb-4 text-gray-600"><i class="fa-solid fa-headphones"></i> ${task.instructions}</p><div class="bg-white p-6 rounded shadow-sm border border-gray-200 mb-6 flex justify-center"><button onclick="playAudio('${task.audio.text.replace(/'/g, "\\'")}', '${task.audio.speaker}')" class="bg-green-500 text-white px-8 py-4 rounded-full text-xl hover:bg-green-600"><i class="fa-solid fa-play mr-2"></i> Play Audio</button></div>` + renderOnlyQuestions(task.questions, task.id);
+        } else if (task.type === 'listen_convo') {
+            html += `<p class="mb-4 text-gray-600"><i class="fa-solid fa-headphones"></i> ${task.instructions}</p>` + task.subtasks.map((sub, idx) => `<h3 class="text-xl font-bold mt-8 mb-4 border-b pb-2">${sub.title}</h3><div class="bg-white p-6 rounded shadow-sm border border-gray-200 mb-6 flex justify-center"><button onclick="playConversation(decodeURIComponent('${encodeURIComponent(JSON.stringify(sub.audio))}'))" class="bg-green-500 text-white px-6 py-3 rounded-full hover:bg-green-600"><i class="fa-solid fa-play mr-2"></i> Play Conversation</button></div>` + renderOnlyQuestions(sub.questions, `${task.id}_sub${idx}`)).join('');
+        } else if (task.type === 'speak_repeat') {
+            html += `<div class="bg-yellow-50 p-4 border-l-4 border-yellow-400 mb-6">${task.instructions}</div>` + task.phrases.map((phrase, idx) => `<div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-4 flex items-center justify-between"><div><span class="font-bold text-gray-500 mr-2">#${idx+1}</span><button onclick="playAudio('${phrase.replace(/'/g, "\\'")}', 'woman')" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"><i class="fa-solid fa-volume-high"></i> Listen</button></div><div class="flex items-center gap-4"><span id="timer_sr_${idx}" class="font-mono text-lg font-bold text-gray-700">15s</span><button id="btn_sr_${idx}" onclick="startSpeakingTask('sr_${idx}', 15)" class="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600"><i class="fa-solid fa-microphone"></i> Record</button></div></div><div id="transcript_sr_${idx}" class="text-sm italic text-gray-600 mb-4 ml-4"></div>`).join('');
+        } else if (task.type === 'speak_interview') {
+            html += `<div class="bg-yellow-50 p-4 border-l-4 border-yellow-400 mb-6">${task.instructions}</div>` + task.questions.map((q, idx) => `<div class="bg-white p-6 rounded shadow-sm border border-gray-200 mb-4"><div class="mb-4"><button onclick="playAudio('${q.replace(/'/g, "\\'")}', 'man')" class="bg-gray-200 px-3 py-1 rounded hover:bg-gray-300 mb-2"><i class="fa-solid fa-volume-high"></i> Listen to Interviewer</button></div><div class="flex items-center justify-between bg-gray-50 p-4 rounded"><span class="text-gray-600 font-semibold">Your Response:</span><div class="flex items-center gap-4"><span id="timer_si_${idx}" class="font-mono text-2xl font-bold text-gray-700">45s</span><button id="btn_si_${idx}" onclick="startSpeakingTask('si_${idx}', 45)" class="bg-red-500 text-white px-6 py-2 rounded-full shadow hover:bg-red-600"><i class="fa-solid fa-microphone"></i> Start Answer</button></div></div><div id="transcript_si_${idx}" class="mt-4 text-sm italic text-blue-800 bg-blue-50 p-2 rounded hidden"></div></div>`).join('');
+        } else if (task.type === 'write_sentence') {
+            html += `<p class="mb-4 text-gray-600">${task.instructions}</p>` + task.items.map((item, idx) => { const shuffled = [...item.words].sort(() => Math.random() - 0.5); return `<div class="bg-white p-4 rounded shadow-sm border border-gray-200 mb-6"><p class="font-bold mb-2">Sentence ${idx+1}:</p><div class="flex flex-wrap gap-2 mb-4" id="source_${idx}">${shuffled.map((w, wIdx) => `<span draggable="true" ondragstart="drag(event)" id="word_${idx}_${wIdx}" class="word-chip bg-blue-100 text-blue-800 px-3 py-1 rounded shadow-sm">${w}</span>`).join('')}</div><div class="drop-zone p-2 bg-gray-50 flex flex-wrap gap-2 items-center" id="target_${idx}" ondrop="drop(event)" ondragover="allowDrop(event)"><span class="text-gray-400 text-sm pointer-events-none">Drag words here...</span></div><button onclick="checkSentence(${idx}, '${item.correct.replace(/'/g, "\\'")}')" class="mt-4 text-sm bg-blue-600 text-white px-3 py-1 rounded">Comprobar</button><div id="fb_sent_${idx}" class="mt-2 text-sm"></div></div>`; }).join('');
+        } else if (task.type === 'write_email') {
+            html += `<div class="flex justify-between items-center mb-4"><p class="text-gray-600 whitespace-pre-line">${task.instructions}</p><div id="local-timer-email" class="text-2xl font-mono font-bold bg-gray-200 px-4 py-2 rounded">07:00</div></div><textarea id="email-text" class="w-full h-64 p-4 border rounded shadow-inner focus:outline-blue-500 resize-none" oninput="countWords('email-text', 'email-wc')"></textarea><div class="mt-2 text-right text-gray-500 font-bold">Word count: <span id="email-wc">0</span> / 100</div>`;
+            setTimeout(() => startLocalTimer('email', task.timeLimit), 100);
+        } else if (task.type === 'write_academic') {
+            html += `<div class="flex justify-between items-center mb-4"><p class="text-gray-600 whitespace-pre-line">${task.instructions}</p><div id="local-timer-acad" class="text-2xl font-mono font-bold bg-gray-200 px-4 py-2 rounded">10:00</div></div><div class="bg-white p-4 rounded border mb-4 text-sm space-y-4 shadow-sm"><div class="bg-gray-50 p-3 rounded">${task.prof}</div><div class="bg-blue-50 p-3 rounded ml-8">${task.student1}</div><div class="bg-green-50 p-3 rounded ml-8">${task.student2}</div></div><textarea id="acad-text" class="w-full h-48 p-4 border rounded shadow-inner focus:outline-blue-500 resize-none" oninput="countWords('acad-text', 'acad-wc')"></textarea><div class="mt-2 text-right text-gray-500 font-bold">Word count: <span id="acad-wc">0</span></div>`;
+            setTimeout(() => startLocalTimer('acad', task.timeLimit), 100);
+        }
+        content.innerHTML = html;
+    }
+
+    function renderPassageAndQuestions(task, idPrefix = task.id) {
+        return `<div class="flex flex-col lg:flex-row gap-6 mb-8"><div class="lg:w-1/2 bg-white p-6 rounded shadow-sm border border-gray-200 max-h-[600px] text-lg overflow-y-auto">${task.passage}</div><div class="lg:w-1/2 flex flex-col gap-6 max-h-[600px] overflow-y-auto">${task.questions.map((q, idx) => `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><p class="font-bold mb-3">${idx+1}. ${q.q}</p><div class="space-y-2">${q.opts.map((opt, oIdx) => `<label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded"><input type="radio" name="q_${idPrefix}_${idx}" value="${oIdx}"> <span>${opt}</span></label>`).join('')}</div><div class="mt-4 flex gap-2"><button onclick="checkMCQ('${idPrefix}_${idx}', ${q.correct}, '${q.exp.replace(/'/g, "\\'")}', '${currentSection}')" class="text-sm bg-blue-600 text-white px-3 py-1 rounded">Comprobar</button><button onclick="showHint('fb_${idPrefix}_${idx}', '${q.hint.replace(/'/g, "\\'")}')" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded">Pista</button></div><div id="fb_${idPrefix}_${idx}" class="mt-2 text-sm"></div></div>`).join('')}</div></div>`;
+    }
+
+    function renderOnlyQuestions(questions, idPrefix) {
+        return `<div class="grid grid-cols-1 md:grid-cols-2 gap-6">${questions.map((q, idx) => `<div class="bg-white p-4 rounded shadow-sm border border-gray-200"><p class="font-bold mb-3">${idx+1}. ${q.q}</p><div class="space-y-2">${q.opts.map((opt, oIdx) => `<label class="flex items-center gap-2 cursor-pointer p-2 hover:bg-gray-50 rounded"><input type="radio" name="q_${idPrefix}_${idx}" value="${oIdx}"> <span>${opt}</span></label>`).join('')}</div><div class="mt-4 flex gap-2"><button onclick="checkMCQ('${idPrefix}_${idx}', ${q.correct}, '${q.exp.replace(/'/g, "\\'")}', '${currentSection}')" class="text-sm bg-blue-600 text-white px-3 py-1 rounded">Comprobar</button><button onclick="showHint('fb_${idPrefix}_${idx}', '${q.hint.replace(/'/g, "\\'")}')" class="text-sm bg-gray-200 text-gray-700 px-3 py-1 rounded">Pista</button></div><div id="fb_${idPrefix}_${idx}" class="mt-2 text-sm"></div></div>`).join('')}</div>`;
+    }
+
+    function checkCompleteWords(taskId) {
+        const task = examData.reading.modules[0].tasks[0];
+        scores.reading.total += task.answers.length;
+        let html = task.answers.map((ans, idx) => {
+            const input = document.getElementById(`cw_${idx+1}`).value.trim().toLowerCase();
+            return input === ans.toLowerCase() ? `<div class="text-green-600"><i class="fa-solid fa-check"></i> <b>Hueco ${idx+1}:</b> Correcto. ${task.explanations[idx]}</div>` : `<div class="text-red-600"><i class="fa-solid fa-xmark"></i> <b>Hueco ${idx+1}:</b> Incorrecto. Era '${ans}'. ${task.explanations[idx]}</div>`;
+        }).join('');
+        scores.reading.correct += (html.match(/Correcto/g) || []).length;
+        document.getElementById(`feedback-${taskId}`).innerHTML = `<div class="bg-gray-50 p-4 border rounded mt-4">${html}</div>`;
+    }
+
+    function showHintsCompleteWords(taskId) {
+        const task = examData.reading.modules[0].tasks[0];
+        document.getElementById(`feedback-${taskId}`).innerHTML = `<div class="bg-blue-50 p-4 border border-blue-200 rounded mt-4"><b>Pistas:</b><br>${task.hints.map((h, i) => `Hueco ${i+1}: ${h}`).join('<br>')}</div>`;
+    }
+
+    function checkMCQ(qId, correctIdx, exp, section) {
+        scores[section] = scores[section] || {correct:0, total:0};
+        const selected = document.querySelector(`input[name="q_${qId}"]:checked`);
+        if (!selected) return;
+        if (parseInt(selected.value) === correctIdx) { scores[section].correct++; }
+        scores[section].total++;
+        const fbDiv = document.getElementById(`fb_${qId}`);
+        fbDiv.innerHTML = parseInt(selected.value) === correctIdx ? `<div class="feedback-correct"><b>¡Correcto!</b> ${exp}</div>` : `<div class="feedback-incorrect"><b>Incorrecto.</b> ${exp}</div>`;
+        document.querySelectorAll(`input[name="q_${qId}"]`).forEach(el => el.disabled = true);
+    }
+
+    function checkSingleMCQ(qId, correctIdx, exp) { checkMCQ(qId, correctIdx, exp, 'listening'); }
+    function showHint(fbId, hint) { document.getElementById(fbId).innerHTML = `<div class="text-blue-600 bg-blue-50 p-2 rounded mt-2">Pista: ${hint}</div>`; }
+    function playAudio(text, gender) { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; u.pitch = gender === 'man' ? 0.5 : 1.2; window.speechSynthesis.speak(u); }
+    function playConversation(convoJson) { window.speechSynthesis.cancel(); const convo = JSON.parse(convoJson); let i = 0; function s() { if (i < convo.length) { const u = new SpeechSynthesisUtterance(convo[i].text); u.lang = 'en-US'; u.pitch = convo[i].speaker === 'man' ? 0.5 : 1.2; u.onend = s; window.speechSynthesis.speak(u); i++; } } s(); }
+    
+    function setupSpeechRecognition() { if ('webkitSpeechRecognition' in window) { recognition = new webkitSpeechRecognition(); recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US'; } }
+    
+    function startSpeakingTask(taskId, seconds) {
+        const btn = document.getElementById(`btn_${taskId}`);
+        const timerDisplay = document.getElementById(`timer_${taskId}`);
+        const transcriptDiv = document.getElementById(`transcript_${taskId}`);
+        btn.disabled = true; btn.innerHTML = `Recording...`; transcriptDiv.classList.remove('hidden');
+        if (recognition) { 
+            let final = ""; recognition.onresult = (e) => { for(let i=e.resultIndex; i<e.results.length; ++i) if(e.results[i].isFinal) final += e.results[i][0].transcript + " "; transcriptDiv.innerHTML = `<b>You said:</b> ${final}`; speakingTranscripts[taskId] = final; }; recognition.start(); 
+        }
+        let timeLeft = seconds;
+        let int = setInterval(() => { timeLeft--; timerDisplay.innerText = `${timeLeft}s`; if (timeLeft <= 0) { clearInterval(int); if (recognition) recognition.stop(); btn.innerHTML = `Done`; } }, 1000);
+    }
+
+    function countWords(inputId, outputId) { const words = document.getElementById(inputId).value.trim().split(/\s+/).filter(w => w.length > 0).length; document.getElementById(outputId).innerText = words; }
+    function startLocalTimer(type, seconds) { let timeLeft = seconds; setInterval(() => { timeLeft--; const m = Math.floor(timeLeft / 60).toString().padStart(2,'0'); const s = (timeLeft % 60).toString().padStart(2,'0'); document.getElementById(`local-timer-${type}`).innerText = timeLeft >= 0 ? `${m}:${s}` : `Overtime: +${Math.abs(timeLeft)}`; }, 1000); }
+    function allowDrop(ev) { ev.preventDefault(); }
+    function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+    function drop(ev) { ev.preventDefault(); ev.target.appendChild(document.getElementById(ev.dataTransfer.getData("text"))); }
+    function checkSentence(idx, correctStr) { const chips = document.getElementById(`target_${idx}`).querySelectorAll('.word-chip'); const formed = Array.from(chips).map(c => c.innerText).join(' '); document.getElementById(`fb_sent_${idx}`).innerHTML = formed === correctStr ? `<div class="feedback-correct">Correct!</div>` : `<div class="feedback-incorrect">Incorrect. Should be: ${correctStr}</div>`; }
+    function renderResults() { document.getElementById('main-content').innerHTML = `<div class="max-w-4xl mx-auto"><h2 class="text-3xl font-bold mb-8">Exam Results</h2><div class="grid grid-cols-2 gap-8 mb-8"><div class="bg-white p-6 rounded shadow text-center"><h3>Reading</h3><p class="text-4xl font-bold">${scores.reading.correct} / ${scores.reading.total}</p></div><div class="bg-white p-6 rounded shadow text-center"><h3>Listening</h3><p class="text-4xl font-bold">${scores.listening.correct} / ${scores.listening.total}</p></div></div><h3 class="font-bold">Speaking Transcripts:</h3>${Object.entries(speakingTranscripts).map(([id, t]) => `<p>Task ${id}: ${t}</p>`).join('')}</div>`; }
+    window.onload = init;
+</script>
+</body>
+</html>

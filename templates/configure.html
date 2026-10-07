@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background-color: #004d73;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .contenedor-columnas {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 5px 60px; /* 20px entre columnas del mismo tipo, 60px entre TOEFL y SAT */
+            margin: 20px auto;
+            width: 90%;
+        }
+
+        .bloque-titulo {
+            grid-column: span 2;
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .columna {
+            background: rgba(0, 77, 115, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 7px 0;
+            font-size: 1.1em;
+        }
+
+        select {
+            background-color: #007aa3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        button {
+            display: block;
+            margin: 30px auto;
+            padding: 10px 20px;
+            background-color: #007aa3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        a {
+            display: block;
+            text-align: center;
+            color: #00c8ff;
+            margin-top: 10px;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Configurar estados de exámenes</h1>
+
+<form method="POST">
+
+    <div class="contenedor-columnas">
+
+        <!-- Título TOEFL -->
+        <div class="bloque-titulo">TOEFL</div>
+        <!-- Título SAT -->
+        <div class="bloque-titulo">SAT</div>
+
+        <!-- Columnas TOEFL -->
+        {% for columna in [0, 1] %}
+        <div class="columna">
+            <ul>
+            {% for examen in examenes["toefl"][columna::2] %}
+                <li>
+                    <select name="{{ examen }}">
+                        {% for estado in ["habilitado", "realizado", "deshabilitado"] %}
+                            <option value="{{ estado }}" {% if estados[examen] == estado %}selected{% endif %}>
+                                {{ estado }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {{ examen }}
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+
+        <!-- Columnas SAT -->
+        {% for columna in [0, 1] %}
+        <div class="columna">
+            <ul>
+            {% for examen in examenes["sat"][columna::2] %}
+                <li>
+                    <select name="{{ examen }}">
+                        {% for estado in ["habilitado", "realizado", "deshabilitado"] %}
+                            <option value="{{ estado }}" {% if estados[examen] == estado %}selected{% endif %}>
+                                {{ estado }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {{ examen }}
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+
+    </div>
+
+    <button type="submit">Guardar cambios</button>
+    <a href="/logout">Cerrar sesión</a>
+
+</form>
+
+</body>
+</html>

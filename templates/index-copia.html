@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<h1>Exámenes disponibles</h1>
+
+<div class="contenedor-columnas">
+
+    <div class="columna">
+        <h2>TOEFL</h2>
+        <ul>
+        {% for examen in examenes["toefl"] %}
+            {% set estado = estados[examen] %}
+            {% if estado == "habilitado" %}
+                <li><a href="/examen/toefl/{{ examen }}">{{ examen }}</a></li>
+            {% elif estado == "realizado" %}
+                <li class="examen-realizado">{{ examen }} (realizado)</li>
+            {% else %}
+                <li class="examen-deshabilitado">{{ examen }} (deshabilitado)</li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+
+    <div class="columna">
+        <h2>SAT</h2>
+        <ul>
+        {% for examen in examenes["sat"] %}
+            {% set estado = estados[examen] %}
+            {% if estado == "habilitado" %}
+                <li><a href="/examen/sat/{{ examen }}">{{ examen }}</a></li>
+            {% elif estado == "realizado" %}
+                <li class="examen-realizado">{{ examen }} (realizado)</li>
+            {% else %}
+                <li class="examen-deshabilitado">{{ examen }} (deshabilitado)</li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+
+<!-- Botón invisible -->
+<a id="boton-configurar" href="/configure"></a>
+
+</body>
+</html>
+
